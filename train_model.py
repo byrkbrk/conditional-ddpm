@@ -74,8 +74,9 @@ class TrainModel(nn.Module):
 
                 ave_loss += loss.item()/len(dataloader)
             print(f"Epoch: {epoch}, loss: {ave_loss}")
-            save_image(x, f"saved-images/x_orig_{epoch}.jpeg")
-            save_image(self.get_x_unpert(x_pert, t, pred_noise, ab_t), f"saved-images/x_denoised_{epoch}.jpeg")
+            save_image(x, os.path.join(self.file_dir, "saved-images", f"x_orig_{epoch}.jpeg"))
+            save_image(self.get_x_unpert(x_pert, t, pred_noise, ab_t), 
+                       os.path.join(self.file_dir, "saved-images", f"x_denoised_{epoch}.jpeg"))
             self.save_checkpoint(self.nn_model, optim, epoch, ave_loss, 
                                  self.timesteps, a_t, b_t, ab_t,
                                  self.device, self.dataset_name, self.file_dir)
