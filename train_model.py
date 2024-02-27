@@ -39,7 +39,7 @@ class TrainModel(nn.Module):
         ab_t = torch.cumprod(a_t, dim=0)
         
         dataset = self.get_dataset(self.dataset_name, 
-                            self.get_transforms(self.dataset_name))
+                            self.get_transforms(self.dataset_name), self.file_dir)
         dataloader = DataLoader(dataset, self.batch_size, True)
         optim = torch.optim.Adam(self.nn_model.parameters(), lr=self.lrate)
         self.nn_model.to(self.device)
@@ -84,16 +84,18 @@ class TrainModel(nn.Module):
     def perturb_input(self, x, t, noise, ab_t):
         return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]) * noise
     
-    def get_dataset(self, dataset_name, transforms):
+    def get_dataset(self, dataset_name, transforms, file_dir):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite"}, "Unknown dataset"
         
         transform, target_transform = transforms
         if dataset_name=="mnist":
-            return MNIST(".", True, transform, target_transform, True)
+            return MNIST(file_dir, True, transform, target_transform, True)
         if dataset_name=="fashion_mnist":
-            return FashionMNIST(".", True, transform, target_transform, True)
+            return FashionMNIST(file_dir, True, transform, target_transform, True)
         if dataset_name=="sprite":
-            return CustomDataset("sprites_1788_16x16.npy", "sprite_labels_nc_1788_16x16.npy", transform)
+            return CustomDataset(os.path.join(file_dir, "sprites_1788_16x16.npy"), 
+                                 os.path.join(file_dir, "sprite_labels_nc_1788_16x16.npy"), 
+                                 transform)
 
     def get_transforms(self, dataset_name):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite"}, "Unknown dataset"
