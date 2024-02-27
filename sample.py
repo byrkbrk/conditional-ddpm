@@ -17,13 +17,15 @@ if __name__=="__main__":
     os.makedirs(os.path.join(os.path.dirname(__file__), "generated-images"),
                  exist_ok=True)
     
-    checkpoint = torch.load(os.path.join("checkpoints", checkpoint_name))
+    checkpoint = torch.load(
+        os.path.join(os.path.dirname(__file__), "checkpoints", checkpoint_name))
     nn_model = TrainModel(dataset_name=checkpoint["dataset_name"], checkpoint_name=checkpoint_name).nn_model
     samples, intermediate_ddpm = sample_ddpm(n_sample=n_sample, n_channel=nn_model.in_channels,
                                              height=nn_model.h, width=nn_model.h, 
                                              nn_model=nn_model, timesteps=checkpoint["timesteps"],                                              
                                              a_t=checkpoint["a_t"], b_t=checkpoint["b_t"], 
                                              ab_t=checkpoint["ab_t"], device=checkpoint["device"],)
-    plot_sample(intermediate_ddpm, n_sample, 8, "generated-images/", 
+    plot_sample(intermediate_ddpm, n_sample, 8, os.path.dirname(__file__) + "/generated-images/", 
                 "ani_run", None, True)
-    save_image(samples, os.path.join("generated-images", "ddpm_images.jpeg"))
+    save_image(samples, 
+               os.path.join(os.path.dirname(__file__), "generated-images", "ddpm_images.jpeg"))
