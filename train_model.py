@@ -18,7 +18,6 @@ class TrainModel(nn.Module):
                  timesteps=500, beta1=1e-4, beta2=0.02, device="cuda", 
                  dataset_name=None, checkpoint_name=None):
         super(TrainModel, self).__init__()
-        #self.nn_model = ContextUnet(in_channels, n_feat, n_cfeat, height)
         self.batch_size = batch_size
         self.n_epoch = n_epoch
         self.lrate = lrate
@@ -29,7 +28,7 @@ class TrainModel(nn.Module):
         self.dataset_name = dataset_name
         self.file_dir = os.path.dirname(__file__)
         self.checkpoint_name = checkpoint_name
-        self.nn_model = self.initialize_nn_model(dataset_name, checkpoint_name)
+        self.nn_model = self.initialize_nn_model(dataset_name, checkpoint_name, self.file_dir)
         self.create_dirs(self.file_dir)
 
     def train(self):
@@ -121,7 +120,7 @@ class TrainModel(nn.Module):
     def get_x_unpert(self, x_pert, t, pred_noise, ab_t):
         return (x_pert - (1 - ab_t[t, None, None, None]) * pred_noise) / ab_t.sqrt()[t, None, None, None]
     
-    def initialize_nn_model(self, dataset_name, checkpoint_name):
+    def initialize_nn_model(self, dataset_name, checkpoint_name, file_dir):
         """Returns the instantiated model based on dataset name"""
         assert dataset_name in {"mnist", "fashion_mnist", "sprite"}, "Unknown dataset name"
 
@@ -132,7 +131,7 @@ class TrainModel(nn.Module):
             nn_model = ContextUnet(in_channels=3, n_feat=64, n_cfeat=5, height=16)
         
         if checkpoint_name:
-            checkpoint = torch.load(os.path.join("checkpoints", checkpoint_name))
+            checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
             nn_model.to(checkpoint["device"])
             nn_model.load_state_dict(checkpoint["model_state_dict"])
         return nn_model
@@ -201,9 +200,3 @@ class TrainModel(nn.Module):
         noise = b_t.sqrt()[t] * z
         mean = (x - pred_noise * ((1 - a_t[t]) / (1 - ab_t[t]).sqrt())) / a_t[t].sqrt()
         return mean + noise
-
-
-if __name__=="__main__":
-    #train_model = TrainModel(in_channels=1, height=28, n_cfeat=10, dataset_name="mnist", device="mps", batch_size=256)
-    train_model = TrainModel(dataset_name="fashion_mnist", device="mps", )
-    train_model.train()
