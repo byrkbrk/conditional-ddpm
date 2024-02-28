@@ -1,4 +1,3 @@
-import os
 import argparse
 from train_model import TrainModel
 
