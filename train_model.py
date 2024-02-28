@@ -28,7 +28,7 @@ class TrainModel(nn.Module):
         self.dataset_name = dataset_name
         self.file_dir = os.path.dirname(__file__)
         self.checkpoint_name = checkpoint_name
-        self.nn_model = self.initialize_nn_model(dataset_name, checkpoint_name, self.file_dir)
+        self.nn_model = self.initialize_nn_model(dataset_name, checkpoint_name, self.file_dir, self.device)
         self.create_dirs(self.file_dir)
 
     def train(self):
@@ -42,7 +42,6 @@ class TrainModel(nn.Module):
                             self.get_transforms(self.dataset_name), self.file_dir)
         dataloader = DataLoader(dataset, self.batch_size, True)
         optim = torch.optim.Adam(self.nn_model.parameters(), lr=self.lrate)
-        self.nn_model.to(self.device)
 
         for epoch in range(self.n_epoch):
             ave_loss = 0
@@ -122,15 +121,15 @@ class TrainModel(nn.Module):
     def get_x_unpert(self, x_pert, t, pred_noise, ab_t):
         return (x_pert - (1 - ab_t[t, None, None, None]) * pred_noise) / ab_t.sqrt()[t, None, None, None]
     
-    def initialize_nn_model(self, dataset_name, checkpoint_name, file_dir):
+    def initialize_nn_model(self, dataset_name, checkpoint_name, file_dir, device):
         """Returns the instantiated model based on dataset name"""
         assert dataset_name in {"mnist", "fashion_mnist", "sprite"}, "Unknown dataset name"
 
         if dataset_name in {"mnist", "fashion_mnist"}:
-            nn_model = ContextUnet(in_channels=1, n_feat=64, n_cfeat=10, height=28)
+            nn_model = ContextUnet(in_channels=1, n_feat=64, n_cfeat=10, height=28).to(device)
         
         if dataset_name=="sprite":
-            nn_model = ContextUnet(in_channels=3, n_feat=64, n_cfeat=5, height=16)
+            nn_model = ContextUnet(in_channels=3, n_feat=64, n_cfeat=5, height=16).to(device)
         
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
