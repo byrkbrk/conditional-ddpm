@@ -8,7 +8,6 @@ from tqdm import tqdm
 import os
 from models import ContextUnet
 from utils import CustomDataset
-import numpy as np
 
 
 
