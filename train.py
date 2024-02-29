@@ -7,10 +7,12 @@ if __name__=="__main__":
     parser.add_argument("--epochs", type=int, default=32, help="Number of epochs for training")
     parser.add_argument("--dataset-name", type=str, default="mnist", help="Dataset name for training")
     parser.add_argument("--device", type=str, default="cuda", help="Device for training")
+    parser.add_argument("--lrate", type=float, default=1e-3, help="Learning rate for training")
     args = parser.parse_args()
 
     train_model = TrainModel(batch_size=args.batch_size, n_epoch=args.epochs, 
-                             device=args.device, dataset_name=args.dataset_name)
+                             device=args.device, dataset_name=args.dataset_name,
+                             lrate=args.lrate)
     train_model.train()
 
 
