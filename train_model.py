@@ -125,16 +125,17 @@ class TrainModel(nn.Module):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite"}, "Unknown dataset name"
 
         if dataset_name in {"mnist", "fashion_mnist"}:
-            nn_model = ContextUnet(in_channels=1, n_feat=64, n_cfeat=10, height=28).to(device)
+            nn_model = ContextUnet(in_channels=1, n_feat=64, n_cfeat=10, height=28)
         
         if dataset_name=="sprite":
-            nn_model = ContextUnet(in_channels=3, n_feat=64, n_cfeat=5, height=16).to(device)
+            nn_model = ContextUnet(in_channels=3, n_feat=64, n_cfeat=5, height=16)
         
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
             nn_model.to(checkpoint["device"])
             nn_model.load_state_dict(checkpoint["model_state_dict"])
-        return nn_model
+            return nn_model
+        return nn_model.to(device)
 
     def save_checkpoint(self, model, optimizer, epoch, loss, 
                         timesteps, a_t, b_t, ab_t, device,
