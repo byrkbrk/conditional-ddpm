@@ -1,6 +1,10 @@
 import torch
 import numpy as np
 from torch.utils.data import Dataset
+from torchvision.utils import make_grid
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import os
 
 class CustomDataset(Dataset):
     def __init__(self, sfilename, lfilename, transform, null_context=False):
@@ -31,3 +35,17 @@ class CustomDataset(Dataset):
     def getshapes(self):
         # return shapes of data and labels
         return self.sprites_shape, self.slabel_shape
+    
+
+def generate_animation(intermediate_samples, save_dir):
+    intermediate_samples = [make_grid(x, scale_each=True, normalize=True).permute(1, 2, 0).numpy() for x in intermediate_samples]
+    fig, ax = plt.subplots()
+    img_plot = ax.imshow(intermediate_samples[0])
+    
+    def update(frame):
+        img_plot.set_array(intermediate_samples[frame])
+        return img_plot
+    
+    ani = FuncAnimation(fig, update, frames=len(intermediate_samples), interval=200)
+    ani.save(os.path.join(save_dir, "ani.gif"))
+
