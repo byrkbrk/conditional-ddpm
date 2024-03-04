@@ -31,9 +31,9 @@ def sample_ddpm(n_sample, n_channel, height, width, nn_model, timesteps, a_t, b_
         eps = nn_model(samples, t, c=context)    # predict noise e_(x_t,t)
         samples = denoise_add_noise(samples, i, eps, a_t, b_t, ab_t, z)
         if i % save_rate ==0 or i==timesteps or i<8:
-            intermediate.append(samples.detach().cpu().numpy())
-
-    intermediate = np.stack(intermediate)
+            #intermediate.append(samples.detach().cpu().numpy())
+            intermediate.append(samples.detach().cpu())
+    #intermediate = np.stack(intermediate)
     return samples, intermediate
 
 
