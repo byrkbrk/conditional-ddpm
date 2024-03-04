@@ -2,6 +2,7 @@ from sampling_functions import sample_ddpm
 from diffusion_utilities import plot_sample
 from torchvision.utils import save_image
 from train_model import TrainModel
+from utils import generate_animation
 import torch
 import os
 import argparse
@@ -25,7 +26,10 @@ if __name__=="__main__":
                                              nn_model=nn_model, timesteps=checkpoint["timesteps"],                                              
                                              a_t=checkpoint["a_t"], b_t=checkpoint["b_t"], 
                                              ab_t=checkpoint["ab_t"], device=checkpoint["device"],)
-    plot_sample(intermediate_ddpm, n_sample, 8, os.path.dirname(__file__) + "/generated-images/", 
-                "ani_run", None, True)
-    save_image(samples, 
-               os.path.join(os.path.dirname(__file__), "generated-images", "ddpm_images.jpeg"))
+    #plot_sample(intermediate_ddpm, n_sample, 8, os.path.dirname(__file__) + "/generated-images/", 
+    #            "ani_run", None, True)
+    generate_animation(intermediate_ddpm, 
+                       os.path.join(os.path.dirname(__file__), "generated-images"))
+    save_image(samples, os.path.join(
+        os.path.dirname(__file__), "generated-images", "ddpm_images.jpeg"), 
+        scale_each=True, normalize=True)
