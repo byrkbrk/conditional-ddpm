@@ -40,7 +40,7 @@ class TrainModel(nn.Module):
         dataset = self.get_dataset(self.dataset_name, 
                             self.get_transforms(self.dataset_name), self.file_dir)
         dataloader = DataLoader(dataset, self.batch_size, True)
-        optim = torch.optim.Adam(self.nn_model.parameters(), lr=self.lrate)
+        optim = self.initialize_optimizer(self.nn_model, self.lrate, self.checkpoint_name, self.file_dir)
 
         for epoch in range(self.n_epoch):
             ave_loss = 0
@@ -143,7 +143,7 @@ class TrainModel(nn.Module):
         checkpoint = {
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
-            "optimizer": optimizer.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
             "loss": loss,
             "timesteps": timesteps, 
             "a_t": a_t, 
@@ -159,3 +159,10 @@ class TrainModel(nn.Module):
         dir_names = ["checkpoints", "saved-images"]
         for dir_name in dir_names:
             os.makedirs(os.path.join(file_dir, dir_name), exist_ok=True)
+
+    def initialize_optimizer(self, nn_model, lr, checkpoint_name, file_dir):
+        optim = torch.optim.Adam(nn_model.parameters(), lr=lr)
+        if checkpoint_name:
+            checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
+            optim.load_state_dict(checkpoint["optimizer_state_dict"])
+        return optim
