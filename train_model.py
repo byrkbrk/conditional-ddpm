@@ -41,6 +41,7 @@ class TrainModel(nn.Module):
                             self.get_transforms(self.dataset_name), self.file_dir)
         dataloader = DataLoader(dataset, self.batch_size, True)
         optim = self.initialize_optimizer(self.nn_model, self.lrate, self.checkpoint_name, self.file_dir)
+        scheduler = self.initialize_scheduler(optim, self.checkpoint_name, self.file_dir)
 
         for epoch in range(self.n_epoch):
             ave_loss = 0
@@ -68,15 +69,16 @@ class TrainModel(nn.Module):
                 optim.zero_grad()
                 loss.backward()
                 optim.step()
+                scheduler.step()
 
                 ave_loss += loss.item()/len(dataloader)
             print(f"Epoch: {epoch}, loss: {ave_loss}")
             save_image(x, os.path.join(self.file_dir, "saved-images", f"x_orig_{epoch}.jpeg"))
             save_image(self.get_x_unpert(x_pert, t, pred_noise, ab_t), 
                        os.path.join(self.file_dir, "saved-images", f"x_denoised_{epoch}.jpeg"))
-            self.save_checkpoint(self.nn_model, optim, epoch, ave_loss, 
-                                 self.timesteps, a_t, b_t, ab_t,
-                                 self.device, self.dataset_name, self.file_dir)
+            self.save_checkpoint(self.nn_model, optim, scheduler, epoch, ave_loss, 
+                                 self.timesteps, a_t, b_t, ab_t, self.device,
+                                 self.dataset_name, self.file_dir)
 
 
     def perturb_input(self, x, t, noise, ab_t):
@@ -137,13 +139,14 @@ class TrainModel(nn.Module):
             return nn_model
         return nn_model.to(device)
 
-    def save_checkpoint(self, model, optimizer, epoch, loss, 
-                        timesteps, a_t, b_t, ab_t, device,
-                        dataset_name, file_dir):
+    def save_checkpoint(self, model, optimizer, scheduler, epoch, loss, 
+                        timesteps, a_t, b_t, ab_t, device, dataset_name,
+                        file_dir):
         checkpoint = {
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": scheduler.state_dict(),
             "loss": loss,
             "timesteps": timesteps, 
             "a_t": a_t, 
@@ -166,3 +169,11 @@ class TrainModel(nn.Module):
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
             optim.load_state_dict(checkpoint["optimizer_state_dict"])
         return optim
+
+    def initialize_scheduler(self, optimizer, checkpoint_name, file_dir):
+        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.1, 
+                                                    total_iters=10)
+        if checkpoint_name:
+            checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
+            scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        return scheduler
