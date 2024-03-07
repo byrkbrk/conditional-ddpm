@@ -70,9 +70,9 @@ class TrainModel(nn.Module):
                 optim.zero_grad()
                 loss.backward()
                 optim.step()
-                scheduler.step()
 
                 ave_loss += loss.item()/len(dataloader)
+            scheduler.step()
             print(f"Epoch: {epoch}, loss: {ave_loss}")
             self.save_tensor_images(x, x_pert, self.get_x_unpert(x_pert, t, pred_noise, ab_t), epoch, self.file_dir)
             self.save_checkpoint(self.nn_model, optim, scheduler, epoch, ave_loss, 
