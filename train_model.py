@@ -43,7 +43,8 @@ class TrainModel(nn.Module):
         optim = self.initialize_optimizer(self.nn_model, self.lrate, self.checkpoint_name, self.file_dir)
         scheduler = self.initialize_scheduler(optim, self.checkpoint_name, self.file_dir)
 
-        for epoch in range(self.n_epoch):
+        for epoch in range(self.get_start_epoch(self.checkpoint_name, self.file_dir), 
+                           self.get_start_epoch(self.checkpoint_name, self.file_dir) + self.n_epoch):
             ave_loss = 0
 
             for x, c in tqdm(dataloader, mininterval=2, desc=f"Epoch {epoch}"):
@@ -171,9 +172,16 @@ class TrainModel(nn.Module):
         return optim
 
     def initialize_scheduler(self, optimizer, checkpoint_name, file_dir):
-        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.1, 
-                                                    total_iters=10)
+        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, 
+                                                    total_iters=20)
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
             scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         return scheduler
+    
+    def get_start_epoch(self, checkpoint_name, file_dir):
+        if checkpoint_name:
+            start_epoch = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))["epoch"] + 1
+        else:
+            start_epoch = 0
+        return start_epoch
