@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torchvision.utils import save_image
+from torchvision.utils import save_image, make_grid
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST, FashionMNIST
@@ -74,9 +74,7 @@ class TrainModel(nn.Module):
 
                 ave_loss += loss.item()/len(dataloader)
             print(f"Epoch: {epoch}, loss: {ave_loss}")
-            save_image(x, os.path.join(self.file_dir, "saved-images", f"x_orig_{epoch}.jpeg"))
-            save_image(self.get_x_unpert(x_pert, t, pred_noise, ab_t), 
-                       os.path.join(self.file_dir, "saved-images", f"x_denoised_{epoch}.jpeg"))
+            self.save_tensor_images(x, x_pert, self.get_x_unpert(x_pert, t, pred_noise, ab_t), epoch, self.file_dir)
             self.save_checkpoint(self.nn_model, optim, scheduler, epoch, ave_loss, 
                                  self.timesteps, a_t, b_t, ab_t, self.device,
                                  self.dataset_name, self.file_dir)
@@ -173,7 +171,7 @@ class TrainModel(nn.Module):
 
     def initialize_scheduler(self, optimizer, checkpoint_name, file_dir):
         scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, 
-                                                    total_iters=20)
+                                                    total_iters=32)
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
             scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
@@ -185,3 +183,7 @@ class TrainModel(nn.Module):
         else:
             start_epoch = 0
         return start_epoch
+    
+    def save_tensor_images(self, x_orig, x_noised, x_denoised, cur_epoch, file_dir):
+        save_image([make_grid(x_orig), make_grid(x_noised), make_grid(x_denoised)],
+                   os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg"))
