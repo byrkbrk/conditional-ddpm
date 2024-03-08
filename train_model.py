@@ -132,8 +132,8 @@ class TrainModel(nn.Module):
             nn_model = ContextUnet(in_channels=3, n_feat=64, n_cfeat=5, height=16)
         
         if checkpoint_name:
-            checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
-            nn_model.to(checkpoint["device"])
+            checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
+            nn_model.to(device)
             nn_model.load_state_dict(checkpoint["model_state_dict"])
             return nn_model
         return nn_model.to(device)
