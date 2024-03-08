@@ -179,7 +179,8 @@ class TrainModel(nn.Module):
     
     def get_start_epoch(self, checkpoint_name, file_dir):
         if checkpoint_name:
-            start_epoch = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))["epoch"] + 1
+            start_epoch = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
+                                    map_location=torch.device("cpu"))["epoch"] + 1
         else:
             start_epoch = 0
         return start_epoch
