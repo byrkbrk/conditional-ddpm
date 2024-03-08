@@ -40,7 +40,7 @@ class TrainModel(nn.Module):
         dataset = self.get_dataset(self.dataset_name, 
                             self.get_transforms(self.dataset_name), self.file_dir)
         dataloader = DataLoader(dataset, self.batch_size, True)
-        optim = self.initialize_optimizer(self.nn_model, self.lrate, self.checkpoint_name, self.file_dir)
+        optim = self.initialize_optimizer(self.nn_model, self.lrate, self.checkpoint_name, self.file_dir, self.device)
         scheduler = self.initialize_scheduler(optim, self.checkpoint_name, self.file_dir, self.device)
 
         for epoch in range(self.get_start_epoch(self.checkpoint_name, self.file_dir), 
@@ -162,10 +162,10 @@ class TrainModel(nn.Module):
         for dir_name in dir_names:
             os.makedirs(os.path.join(file_dir, dir_name), exist_ok=True)
 
-    def initialize_optimizer(self, nn_model, lr, checkpoint_name, file_dir):
+    def initialize_optimizer(self, nn_model, lr, checkpoint_name, file_dir, device):
         optim = torch.optim.Adam(nn_model.parameters(), lr=lr)
         if checkpoint_name:
-            checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
+            checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
             optim.load_state_dict(checkpoint["optimizer_state_dict"])
         return optim
 
