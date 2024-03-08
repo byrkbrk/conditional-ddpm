@@ -41,7 +41,7 @@ class TrainModel(nn.Module):
                             self.get_transforms(self.dataset_name), self.file_dir)
         dataloader = DataLoader(dataset, self.batch_size, True)
         optim = self.initialize_optimizer(self.nn_model, self.lrate, self.checkpoint_name, self.file_dir)
-        scheduler = self.initialize_scheduler(optim, self.checkpoint_name, self.file_dir)
+        scheduler = self.initialize_scheduler(optim, self.checkpoint_name, self.file_dir, self.device)
 
         for epoch in range(self.get_start_epoch(self.checkpoint_name, self.file_dir), 
                            self.get_start_epoch(self.checkpoint_name, self.file_dir) + self.n_epoch):
@@ -169,11 +169,11 @@ class TrainModel(nn.Module):
             optim.load_state_dict(checkpoint["optimizer_state_dict"])
         return optim
 
-    def initialize_scheduler(self, optimizer, checkpoint_name, file_dir):
+    def initialize_scheduler(self, optimizer, checkpoint_name, file_dir, device):
         scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, 
                                                     total_iters=32)
         if checkpoint_name:
-            checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name))
+            checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
             scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         return scheduler
     
