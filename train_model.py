@@ -30,21 +30,18 @@ class TrainModel(nn.Module):
         self.nn_model = self.initialize_nn_model(dataset_name, checkpoint_name, self.file_dir, self.device)
         self.create_dirs(self.file_dir)
 
-    def train(self):
-        # ddpm noise schedule
-        b_t = (self.beta2 - self.beta1)*torch.linspace(
-            0, 1, self.timesteps+1, device=self.device) + self.beta1
-        a_t = 1 - b_t
-        ab_t = torch.cumprod(a_t, dim=0)
+    def train(self, batch_size=64, n_epoch=32, lr=1e-3, timesteps=500, beta1=1e-4, beta2=0.02):
+        # noise schedule
+        a_t ,b_t, ab_t = self.get_ddpm_noise_schedule(timesteps, beta1, beta2, self.device)
         
         dataset = self.get_dataset(self.dataset_name, 
                             self.get_transforms(self.dataset_name), self.file_dir)
-        dataloader = DataLoader(dataset, self.batch_size, True)
-        optim = self.initialize_optimizer(self.nn_model, self.lrate, self.checkpoint_name, self.file_dir, self.device)
+        dataloader = DataLoader(dataset, batch_size, True)
+        optim = self.initialize_optimizer(self.nn_model, lr, self.checkpoint_name, self.file_dir, self.device)
         scheduler = self.initialize_scheduler(optim, self.checkpoint_name, self.file_dir, self.device)
 
         for epoch in range(self.get_start_epoch(self.checkpoint_name, self.file_dir), 
-                           self.get_start_epoch(self.checkpoint_name, self.file_dir) + self.n_epoch):
+                           self.get_start_epoch(self.checkpoint_name, self.file_dir) + n_epoch):
             ave_loss = 0
 
             for x, c in tqdm(dataloader, mininterval=2, desc=f"Epoch {epoch}"):
@@ -57,11 +54,11 @@ class TrainModel(nn.Module):
                 
                 # perturb data
                 noise = torch.randn_like(x)
-                t = torch.randint(1, self.timesteps + 1, (x.shape[0], )).to(self.device)
+                t = torch.randint(1, timesteps + 1, (x.shape[0], )).to(self.device)
                 x_pert = self.perturb_input(x, t, noise, ab_t)
 
                 # predict noise
-                pred_noise = self.nn_model(x_pert, t / self.timesteps, c=c)
+                pred_noise = self.nn_model(x_pert, t / timesteps, c=c)
 
                 # obtain loss
                 loss = torch.nn.functional.mse_loss(pred_noise, noise)
@@ -76,7 +73,7 @@ class TrainModel(nn.Module):
             print(f"Epoch: {epoch}, loss: {ave_loss}")
             self.save_tensor_images(x, x_pert, self.get_x_unpert(x_pert, t, pred_noise, ab_t), epoch, self.file_dir)
             self.save_checkpoint(self.nn_model, optim, scheduler, epoch, ave_loss, 
-                                 self.timesteps, a_t, b_t, ab_t, self.device,
+                                 timesteps, a_t, b_t, ab_t, self.device,
                                  self.dataset_name, self.file_dir)
 
 
@@ -188,3 +185,10 @@ class TrainModel(nn.Module):
     def save_tensor_images(self, x_orig, x_noised, x_denoised, cur_epoch, file_dir):
         save_image([make_grid(x_orig), make_grid(x_noised), make_grid(x_denoised)],
                    os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg"))
+
+    def get_ddpm_noise_schedule(self, timesteps, beta1, beta2, device):
+        # ddpm noise schedule
+        b_t = (beta2 - beta1)*torch.linspace(0, 1, timesteps+1, device=device) + beta1
+        a_t = 1 - b_t
+        ab_t = torch.cumprod(a_t, dim=0)
+        return a_t, b_t, ab_t
