@@ -12,17 +12,8 @@ from utils import CustomDataset
 
 
 class TrainModel(nn.Module):
-    def __init__(self,
-                 batch_size=100, n_epoch=32, lrate=1e-3,
-                 timesteps=500, beta1=1e-4, beta2=0.02, device="cuda", 
-                 dataset_name=None, checkpoint_name=None):
+    def __init__(self, device="cuda", dataset_name=None, checkpoint_name=None):
         super(TrainModel, self).__init__()
-        self.batch_size = batch_size
-        self.n_epoch = n_epoch
-        self.lrate = lrate
-        self.timesteps = timesteps
-        self.beta1 = beta1
-        self.beta2 = beta2
         self.device = torch.device(device)
         self.dataset_name = dataset_name
         self.file_dir = os.path.dirname(__file__)
