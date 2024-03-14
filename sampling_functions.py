@@ -5,6 +5,8 @@ import numpy as np
 def denoise_add_noise(x, t, pred_noise, a_t, b_t, ab_t, z=None):
     if z is None:
         z = torch.randn_like(x)
+    if t == 1: # based on algorithm 2
+        z = 0
     noise = b_t.sqrt()[t] * z
     mean = (x - pred_noise * ((1 - a_t[t]) / (1 - ab_t[t]).sqrt())) / a_t[t].sqrt()
     return mean + noise
