@@ -70,7 +70,7 @@ class TrainModel(nn.Module):
 
 
     def perturb_input(self, x, t, noise, ab_t):
-        return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]) * noise
+        return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]).sqrt() * noise
     
     def get_dataset(self, dataset_name, transforms, file_dir):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite"}, "Unknown dataset"
@@ -108,7 +108,7 @@ class TrainModel(nn.Module):
         return transform, target_transform
     
     def get_x_unpert(self, x_pert, t, pred_noise, ab_t):
-        return (x_pert - (1 - ab_t[t, None, None, None]) * pred_noise) / ab_t.sqrt()[t, None, None, None]
+        return (x_pert - (1 - ab_t[t, None, None, None]).sqrt() * pred_noise) / ab_t.sqrt()[t, None, None, None]
     
     def initialize_nn_model(self, dataset_name, checkpoint_name, file_dir, device):
         """Returns the instantiated model based on dataset name"""
