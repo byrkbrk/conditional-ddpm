@@ -112,7 +112,7 @@ class ContextUnet(nn.Module):
 
     def forward(self, x, t, c=None):
         if c is None: # unconditional case
-            c = torch.zeros(x.shape[0], self.c_nfeat).to(x.device)
+            c = torch.zeros(x.shape[0], self.n_cfeat).to(x.device)
         x = self.init_conv(x)
         down1 = self.down1(x)
         down2 = self.down2(down1)
