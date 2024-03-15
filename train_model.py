@@ -68,6 +68,23 @@ class TrainModel(nn.Module):
                                  timesteps, a_t, b_t, ab_t, self.device,
                                  self.dataset_name, self.file_dir)
 
+    @torch.no_grad()
+    def sample_ddpm(self, n_samples, context=None, save_rate=20):
+        timesteps, a_t, b_t, ab_t = self.get_ddpm_params_from_checkpoint(self.file_dir,
+                                            self.checkpoint_name, self.device)
+        samples = torch.randn(n_samples, self.nn_model.in_channels, 
+                              self.nn_model.height, self.nn_model.width).to(self.device)
+        
+        intermediate = []
+        for i in range(timesteps, 0, -1):
+            print(f"sampling timestep {i:3d}", end="\r")
+            t = torch.tensor([i / timesteps])[:, None, None, None].to(self.device)
+            z = torch.randn_like(samples) if i > 1 else 0
+            pred_noise = self.nn_model(samples, t, context)
+            samples = self.denoise_add_noise(samples, i, pred_noise, a_t, b_t, ab_t, z)
+            if i % save_rate == 0 or i == timesteps or i < 8:
+                intermediate.append(samples.detach().cpu())
+        return samples, intermediate
 
     def perturb_input(self, x, t, noise, ab_t):
         return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]).sqrt() * noise
@@ -185,3 +202,13 @@ class TrainModel(nn.Module):
         a_t = 1 - b_t
         ab_t = torch.cumprod(a_t, dim=0)
         return a_t, b_t, ab_t
+    
+    def get_ddpm_params_from_checkpoint(self, file_dir, checkpoint_name, device):
+        checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
+                                map_location=device)
+        return checkpoint["timesteps"], checkpoint["a_t"], checkpoint["b_t"], checkpoint["ab_t"]
+    
+    def denoise_add_noise(self, x, t, pred_noise, a_t, b_t, ab_t, z):
+        noise = b_t.sqrt()[t]*z
+        denoised_x = (x - pred_noise * ((1 - a_t[t]) / (1 - ab_t[t]).sqrt())) / a_t[t].sqrt()
+        return denoised_x + noise
