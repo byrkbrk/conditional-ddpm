@@ -21,7 +21,7 @@ if __name__=="__main__":
                           checkpoint_name=args.checkpoint_name, device=args.device).nn_model.eval()
     
     samples, intermediate_ddpm = sample_ddpm(n_sample=args.n_sample, n_channel=nn_model.in_channels,
-                                             height=nn_model.h, width=nn_model.h, 
+                                             height=nn_model.height, width=nn_model.width, 
                                              nn_model=nn_model, timesteps=checkpoint["timesteps"],                                              
                                              a_t=checkpoint["a_t"], b_t=checkpoint["b_t"], 
                                              ab_t=checkpoint["ab_t"], device=args.device)
