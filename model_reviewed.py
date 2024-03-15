@@ -79,6 +79,12 @@ class EmbedFC(nn.Module):
 class ContextUnet(nn.Module):
     def __init__(self, in_channels, height, width, n_feat, n_cfeat):
         super(ContextUnet, self).__init__()
+        self.in_channels = in_channels
+        self.height = height
+        self.width = width
+        self.n_feat = n_feat
+        self.n_cfeat = n_cfeat
+
         self.init_conv = ResidualConvBlock(in_channels, n_feat, True)
         self.down1 = UNetDown(n_feat, n_feat)
         self.down2 = UNetDown(n_feat, 2*n_feat)
@@ -104,7 +110,9 @@ class ContextUnet(nn.Module):
         self.contextemb1 = EmbedFC(n_cfeat, 2*n_feat)
         self.contextemb2 = EmbedFC(n_cfeat, n_feat)
 
-    def forward(self, x, t, c):
+    def forward(self, x, t, c=None):
+        if c is None: # unconditional case
+            c = torch.zeros(x.shape[0], self.c_nfeat).to(x.device)
         x = self.init_conv(x)
         down1 = self.down1(x)
         down2 = self.down2(down1)
