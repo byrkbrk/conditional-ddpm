@@ -85,7 +85,7 @@ class TrainModel(nn.Module):
             samples = self.denoise_add_noise(samples, i, pred_noise, a_t, b_t, ab_t, z)
             if i % save_rate == 0 or i == timesteps or i < 8:
                 intermediate.append(samples.detach().cpu())
-        return samples, intermediate
+        return intermediate[-1], intermediate
 
     def perturb_input(self, x, t, noise, ab_t):
         return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]).sqrt() * noise
