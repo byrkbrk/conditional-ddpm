@@ -3,7 +3,7 @@ import torch.nn as nn
 from torchvision.utils import save_image, make_grid
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST, FashionMNIST
+from torchvision.datasets import MNIST, FashionMNIST, CIFAR10
 from tqdm import tqdm
 import os
 from models import ContextUnet
@@ -91,7 +91,7 @@ class TrainModel(nn.Module):
         return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]).sqrt() * noise
     
     def get_dataset(self, dataset_name, transforms, file_dir):
-        assert dataset_name in {"mnist", "fashion_mnist", "sprite"}, "Unknown dataset"
+        assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset"
         
         transform, target_transform = transforms
         if dataset_name=="mnist":
@@ -102,11 +102,13 @@ class TrainModel(nn.Module):
             return CustomDataset(os.path.join(file_dir, "sprites_1788_16x16.npy"), 
                                  os.path.join(file_dir, "sprite_labels_nc_1788_16x16.npy"), 
                                  transform)
+        if dataset_name=="cifar10":
+            return CIFAR10(file_dir, True, transform, target_transform, True)
 
     def get_transforms(self, dataset_name):
-        assert dataset_name in {"mnist", "fashion_mnist", "sprite"}, "Unknown dataset"
+        assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset"
 
-        if dataset_name in {"mnist", "fashion_mnist"}:
+        if dataset_name in {"mnist", "fashion_mnist", "cifar10"}:
             transform = transforms.Compose([
                 transforms.ToTensor(),
                 lambda x: 2*(x - 0.5)
@@ -130,7 +132,7 @@ class TrainModel(nn.Module):
     
     def initialize_nn_model(self, dataset_name, checkpoint_name, file_dir, device):
         """Returns the instantiated model based on dataset name"""
-        assert dataset_name in {"mnist", "fashion_mnist", "sprite"}, "Unknown dataset name"
+        assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset name"
 
         if dataset_name in {"mnist", "fashion_mnist"}:
             #nn_model = ContextUnet(in_channels=1, n_feat=64, n_cfeat=10, height=28)
@@ -138,7 +140,9 @@ class TrainModel(nn.Module):
         if dataset_name=="sprite":
             #nn_model = ContextUnet(in_channels=3, n_feat=64, n_cfeat=5, height=16)
             nn_model = ContextUnet(in_channels=3, height=16, width=16, n_feat=64, n_cfeat=5)
-        
+        if dataset_name == "cifar10":
+            nn_model = ContextUnet(in_channels=3, height=32, width=32, n_feat=64, n_cfeat=10)
+
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
             nn_model.to(device)
