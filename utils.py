@@ -37,8 +37,9 @@ class CustomDataset(Dataset):
         return self.sprites_shape, self.slabel_shape
     
 
-def generate_animation(intermediate_samples, save_dir):
-    intermediate_samples = [make_grid(x, scale_each=True, normalize=True).permute(1, 2, 0).numpy() for x in intermediate_samples]
+def generate_animation(intermediate_samples, fname, n_images_per_row=8):
+    intermediate_samples = [make_grid(x, scale_each=True, normalize=True, 
+                                      nrow=n_images_per_row).permute(1, 2, 0).numpy() for x in intermediate_samples]
     fig, ax = plt.subplots()
     img_plot = ax.imshow(intermediate_samples[0])
     
@@ -47,5 +48,21 @@ def generate_animation(intermediate_samples, save_dir):
         return img_plot
     
     ani = FuncAnimation(fig, update, frames=len(intermediate_samples), interval=200)
-    ani.save(os.path.join(save_dir, "ani.gif"))
+    ani.save(fname)
 
+
+def get_custom_context(n_samples, n_classes, device):
+    context = []
+    for i in range(n_classes - 1):
+        context.extend([i]*(n_samples//n_classes))
+    context.extend([n_classes - 1]*(n_samples - len(context)))
+    return torch.nn.functional.one_hot(torch.tensor(context), n_classes).float().to(device)
+    
+
+if __name__ == "__main__":
+    n_samples = 30
+    n_classes = 10
+    device = torch.device("mps")
+    c = get_custom_context(n_samples, n_classes, device)
+    print(c.shape)
+    print(c)
