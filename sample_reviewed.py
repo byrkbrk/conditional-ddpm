@@ -1,7 +1,6 @@
 from torchvision.utils import save_image
 from train_model import TrainModel
 from utils import generate_animation, get_custom_context
-import torch
 import os
 import argparse
 
@@ -16,7 +15,7 @@ if __name__=="__main__":
     os.makedirs(os.path.join(os.path.dirname(__file__), "generated-images"), exist_ok=True)
     
     train_model = TrainModel(device=args.device, checkpoint_name=args.checkpoint_name)
-    c = get_custom_context(n_samples=args.n_samples, n_classes=train_model.nn_model.n_cfeat, device=torch.device(args.device))
+    c = get_custom_context(n_samples=args.n_samples, n_classes=train_model.nn_model.n_cfeat, device=train_model.device)
     samples, intermediate_ddpm = train_model.sample_ddpm(args.n_samples, c)
     
     save_image(samples, os.path.join(os.path.dirname(__file__), "generated-images", 
