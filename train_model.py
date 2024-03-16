@@ -164,7 +164,7 @@ class TrainModel(nn.Module):
             "dataset_name": dataset_name
         }
         torch.save(checkpoint, os.path.join(
-            file_dir, "checkpoints", f"checkpoint_{epoch}.pth"))
+            file_dir, "checkpoints", f"{dataset_name}_checkpoint_{epoch}.pth"))
 
     def create_dirs(self, file_dir):
         dir_names = ["checkpoints", "saved-images"]
