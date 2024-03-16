@@ -16,13 +16,15 @@ class TrainModel(nn.Module):
     def __init__(self, device="cuda", dataset_name=None, checkpoint_name=None):
         super(TrainModel, self).__init__()
         self.device = torch.device(device)
-        self.dataset_name = dataset_name
         self.file_dir = os.path.dirname(__file__)
+        self.dataset_name = self.initialize_dataset_name(self.file_dir, checkpoint_name, dataset_name)
         self.checkpoint_name = checkpoint_name
-        self.nn_model = self.initialize_nn_model(dataset_name, checkpoint_name, self.file_dir, self.device)
+        self.nn_model = self.initialize_nn_model(self.dataset_name, checkpoint_name, self.file_dir, self.device)
         self.create_dirs(self.file_dir)
 
     def train(self, batch_size=64, n_epoch=32, lr=1e-3, timesteps=500, beta1=1e-4, beta2=0.02):
+        self.nn_model.train()
+        
         # noise schedule
         a_t ,b_t, ab_t = self.get_ddpm_noise_schedule(timesteps, beta1, beta2, self.device)
         
@@ -74,7 +76,7 @@ class TrainModel(nn.Module):
                                             self.checkpoint_name, self.device)
         samples = torch.randn(n_samples, self.nn_model.in_channels, 
                               self.nn_model.height, self.nn_model.width).to(self.device)
-        
+        self.nn_model.eval()
         intermediate = []
         for i in range(timesteps, 0, -1):
             print(f"sampling timestep {i:3d}", end="\r")
@@ -212,3 +214,9 @@ class TrainModel(nn.Module):
         noise = b_t.sqrt()[t]*z
         denoised_x = (x - pred_noise * ((1 - a_t[t]) / (1 - ab_t[t]).sqrt())) / a_t[t].sqrt()
         return denoised_x + noise
+    
+    def initialize_dataset_name(self, file_dir, checkpoint_name, dataset_name):
+        if checkpoint_name:
+            return torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
+                                    map_location=torch.device("cpu"))["dataset_name"]
+        return dataset_name
