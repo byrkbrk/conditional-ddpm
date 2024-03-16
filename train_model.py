@@ -6,8 +6,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST, FashionMNIST
 from tqdm import tqdm
 import os
-#from models import ContextUnet
-from model_reviewed import ContextUnet
+from models import ContextUnet
 from utils import CustomDataset
 
 
