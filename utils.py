@@ -37,14 +37,16 @@ class CustomDataset(Dataset):
         return self.sprites_shape, self.slabel_shape
     
 
-def generate_animation(intermediate_samples, fname, n_images_per_row=8):
+def generate_animation(intermediate_samples, t_steps, fname, n_images_per_row=8):
     intermediate_samples = [make_grid(x, scale_each=True, normalize=True, 
                                       nrow=n_images_per_row).permute(1, 2, 0).numpy() for x in intermediate_samples]
     fig, ax = plt.subplots()
+    ax.axis("off")
     img_plot = ax.imshow(intermediate_samples[0])
     
     def update(frame):
         img_plot.set_array(intermediate_samples[frame])
+        ax.set_title(f"T = {t_steps[frame]}")
         return img_plot
     
     ani = FuncAnimation(fig, update, frames=len(intermediate_samples), interval=200)
