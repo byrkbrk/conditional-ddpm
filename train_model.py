@@ -95,15 +95,15 @@ class TrainModel(nn.Module):
         
         transform, target_transform = transforms
         if dataset_name=="mnist":
-            return MNIST(file_dir, True, transform, target_transform, True)
+            return MNIST(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
         if dataset_name=="fashion_mnist":
-            return FashionMNIST(file_dir, True, transform, target_transform, True)
+            return FashionMNIST(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
         if dataset_name=="sprite":
-            return CustomDataset(os.path.join(file_dir, "sprites_1788_16x16.npy"), 
-                                 os.path.join(file_dir, "sprite_labels_nc_1788_16x16.npy"), 
+            return CustomDataset(os.path.join(file_dir, "datasets", "sprites_1788_16x16.npy"), 
+                                 os.path.join(file_dir, "datasets", "sprite_labels_nc_1788_16x16.npy"), 
                                  transform)
         if dataset_name=="cifar10":
-            return CIFAR10(file_dir, True, transform, target_transform, True)
+            return CIFAR10(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
 
     def get_transforms(self, dataset_name):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset"
