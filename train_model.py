@@ -76,16 +76,18 @@ class TrainModel(nn.Module):
         samples = torch.randn(n_samples, self.nn_model.in_channels, 
                               self.nn_model.height, self.nn_model.width).to(self.device)
         self.nn_model.eval()
-        intermediate = []
+        intermediate = [samples.detach().cpu()] # samples at T = timesteps
+        t_steps = [timesteps] # keep record of time to use in animation generation
         for i in range(timesteps, 0, -1):
             print(f"sampling timestep {i:3d}", end="\r")
             t = torch.tensor([i / timesteps])[:, None, None, None].to(self.device)
             z = torch.randn_like(samples) if i > 1 else 0
             pred_noise = self.nn_model(samples, t, context)
             samples = self.denoise_add_noise(samples, i, pred_noise, a_t, b_t, ab_t, z)
-            if i % save_rate == 0 or i == timesteps or i < 8:
+            if i % save_rate == 1 or i < 8:
                 intermediate.append(samples.detach().cpu())
-        return intermediate[-1], intermediate
+                t_steps.append(i-1)
+        return intermediate[-1], intermediate, t_steps
 
     def perturb_input(self, x, t, noise, ab_t):
         return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]).sqrt() * noise
@@ -135,10 +137,8 @@ class TrainModel(nn.Module):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset name"
 
         if dataset_name in {"mnist", "fashion_mnist"}:
-            #nn_model = ContextUnet(in_channels=1, n_feat=64, n_cfeat=10, height=28)
             nn_model = ContextUnet(in_channels=1, height=28, width=28, n_feat=64, n_cfeat=10)
         if dataset_name=="sprite":
-            #nn_model = ContextUnet(in_channels=3, n_feat=64, n_cfeat=5, height=16)
             nn_model = ContextUnet(in_channels=3, height=16, width=16, n_feat=64, n_cfeat=5)
         if dataset_name == "cifar10":
             nn_model = ContextUnet(in_channels=3, height=32, width=32, n_feat=64, n_cfeat=10)
