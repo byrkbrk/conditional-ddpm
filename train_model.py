@@ -29,7 +29,7 @@ class TrainModel(nn.Module):
         
         dataset = self.get_dataset(self.dataset_name, 
                             self.get_transforms(self.dataset_name), self.file_dir)
-        dataloader = DataLoader(dataset, batch_size, True)
+        dataloader = self.initialize_dataloader(dataset, batch_size, self.checkpoint_name, self.file_dir)
         optim = self.initialize_optimizer(self.nn_model, lr, self.checkpoint_name, self.file_dir, self.device)
         scheduler = self.initialize_scheduler(optim, self.checkpoint_name, self.file_dir, self.device)
 
@@ -67,7 +67,7 @@ class TrainModel(nn.Module):
             self.save_tensor_images(x, x_pert, self.get_x_unpert(x_pert, t, pred_noise, ab_t), epoch, self.file_dir)
             self.save_checkpoint(self.nn_model, optim, scheduler, epoch, ave_loss, 
                                  timesteps, a_t, b_t, ab_t, self.device,
-                                 self.dataset_name, self.file_dir)
+                                 self.dataset_name, dataloader.batch_size, self.file_dir)
 
     @torch.no_grad()
     def sample_ddpm(self, n_samples, context=None, save_rate=20):
@@ -152,7 +152,7 @@ class TrainModel(nn.Module):
 
     def save_checkpoint(self, model, optimizer, scheduler, epoch, loss, 
                         timesteps, a_t, b_t, ab_t, device, dataset_name,
-                        file_dir):
+                        batch_size, file_dir):
         checkpoint = {
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
@@ -164,7 +164,8 @@ class TrainModel(nn.Module):
             "b_t": b_t, 
             "ab_t": ab_t,
             "device": device,
-            "dataset_name": dataset_name
+            "dataset_name": dataset_name,
+            "batch_size": batch_size
         }
         torch.save(checkpoint, os.path.join(
             file_dir, "checkpoints", f"{dataset_name}_checkpoint_{epoch}.pth"))
@@ -223,3 +224,10 @@ class TrainModel(nn.Module):
             return torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
                                     map_location=torch.device("cpu"))["dataset_name"]
         return dataset_name
+    
+    def initialize_dataloader(self, dataset, batch_size, checkpoint_name, file_dir):
+        """Returns dataloader based on batch-size of checkpoint if present"""
+        if checkpoint_name:
+            batch_size = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
+                                    map_location=torch.device("cpu"))["batch_size"]
+        return DataLoader(dataset, batch_size, True)
