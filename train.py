@@ -1,5 +1,5 @@
 import argparse
-from train_model import TrainModel
+from diffusion_model import DiffusionModel
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description="Train diffusion model")
@@ -11,8 +11,8 @@ if __name__=="__main__":
     parser.add_argument("--checkpoint-name", type=str, default=None, help="Checkpoint name for pre-training")
     args = parser.parse_args()
 
-    train_model = TrainModel(device=args.device, dataset_name=args.dataset_name, 
+    diffusion_model = DiffusionModel(device=args.device, dataset_name=args.dataset_name, 
                              checkpoint_name=args.checkpoint_name)
-    train_model.train(batch_size=args.batch_size, n_epoch=args.epochs, lr=args.lr)
+    diffusion_model.train(batch_size=args.batch_size, n_epoch=args.epochs, lr=args.lr)
 
 
