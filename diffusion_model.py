@@ -7,7 +7,7 @@ from torchvision.datasets import MNIST, FashionMNIST, CIFAR10
 from tqdm import tqdm
 import os
 from models import ContextUnet
-from utils import CustomDataset
+from utils import SpriteDataset
 
 
 
@@ -101,9 +101,9 @@ class DiffusionModel(nn.Module):
         if dataset_name=="fashion_mnist":
             return FashionMNIST(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
         if dataset_name=="sprite":
-            return CustomDataset(os.path.join(file_dir, "datasets", "sprites_1788_16x16.npy"), 
+            return SpriteDataset(os.path.join(file_dir, "datasets", "sprites_1788_16x16.npy"), 
                                  os.path.join(file_dir, "datasets", "sprite_labels_nc_1788_16x16.npy"), 
-                                 transform)
+                                 transform, target_transform)
         if dataset_name=="cifar10":
             return CIFAR10(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
 
@@ -126,7 +126,7 @@ class DiffusionModel(nn.Module):
                 transforms.ToTensor(),                # from [0,255] to range [0.0,1.0]
                 transforms.Normalize((0.5,), (0.5,))  # range [-1,1]
             ])
-            target_transform = None    
+            target_transform = lambda x: torch.from_numpy(x).to(torch.float32)
         return transform, target_transform
     
     def get_x_unpert(self, x_pert, t, pred_noise, ab_t):
