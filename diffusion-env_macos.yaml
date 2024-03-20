@@ -1,0 +1,13 @@
+name: diffusion-env
+
+channels:
+  - pytorch
+  - defaults
+
+dependencies:
+  - python=3.11
+  - pytorch
+  - torchvision
+  - matplotlib
+  - numpy
+  - tqdm
