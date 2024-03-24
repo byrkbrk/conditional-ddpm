@@ -25,7 +25,7 @@ class DiffusionModel(nn.Module):
         self.nn_model.train()
         
         # noise schedule
-        a_t ,b_t, ab_t = self.get_ddpm_noise_schedule(timesteps, beta1, beta2, self.device)
+        _ , _, ab_t = self.get_ddpm_noise_schedule(timesteps, beta1, beta2, self.device)
         
         dataset = self.get_dataset(self.dataset_name, 
                             self.get_transforms(self.dataset_name), self.file_dir)
@@ -62,8 +62,8 @@ class DiffusionModel(nn.Module):
             print(f"Epoch: {epoch}, loss: {ave_loss}")
             self.save_tensor_images(x, x_pert, self.get_x_unpert(x_pert, t, pred_noise, ab_t), epoch, self.file_dir)
             self.save_checkpoint(self.nn_model, optim, scheduler, epoch, ave_loss, 
-                                 timesteps, a_t, b_t, ab_t, self.device,
-                                 self.dataset_name, dataloader.batch_size, self.file_dir)
+                                 timesteps, beta1, beta2, self.device, self.dataset_name,
+                                 dataloader.batch_size, self.file_dir)
 
     @torch.no_grad()
     def sample_ddpm(self, n_samples, context=None, save_rate=20, timesteps=None, beta1=None, beta2=None):
@@ -150,8 +150,8 @@ class DiffusionModel(nn.Module):
         return nn_model.to(device)
 
     def save_checkpoint(self, model, optimizer, scheduler, epoch, loss, 
-                        timesteps, a_t, b_t, ab_t, device, dataset_name,
-                        batch_size, file_dir):
+                        timesteps, beta1, beta2, device, dataset_name, batch_size, 
+                        file_dir):
         checkpoint = {
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
@@ -159,9 +159,8 @@ class DiffusionModel(nn.Module):
             "scheduler_state_dict": scheduler.state_dict(),
             "loss": loss,
             "timesteps": timesteps, 
-            "a_t": a_t, 
-            "b_t": b_t, 
-            "ab_t": ab_t,
+            "beta1": beta1, 
+            "beta2": beta2,
             "device": device,
             "dataset_name": dataset_name,
             "batch_size": batch_size
