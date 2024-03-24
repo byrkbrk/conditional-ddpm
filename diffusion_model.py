@@ -66,8 +66,11 @@ class DiffusionModel(nn.Module):
                                  self.dataset_name, dataloader.batch_size, self.file_dir)
 
     @torch.no_grad()
-    def sample_ddpm(self, n_samples, context=None, save_rate=20):
-        timesteps, a_t, b_t, ab_t = self.get_ddpm_params_from_checkpoint(self.file_dir,
+    def sample_ddpm(self, n_samples, context=None, save_rate=20, timesteps=None, beta1=None, beta2=None):
+        if all([timesteps, beta1, beta2]):
+            a_t, b_t, ab_t = self.get_ddpm_noise_schedule(timesteps, beta1, beta2, self.device)
+        else:
+            timesteps, a_t, b_t, ab_t = self.get_ddpm_params_from_checkpoint(self.file_dir,
                                             self.checkpoint_name, self.device)
         samples = torch.randn(n_samples, self.nn_model.in_channels, 
                               self.nn_model.height, self.nn_model.width).to(self.device)
