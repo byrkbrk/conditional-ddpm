@@ -203,8 +203,12 @@ class DiffusionModel(nn.Module):
                    os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg"))
 
     def get_ddpm_noise_schedule(self, timesteps, beta1, beta2, device):
-        # ddpm noise schedule
-        b_t = (beta2 - beta1)*torch.linspace(0, 1, timesteps+1, device=device) + beta1
+        """Returns ddpm noise schedule variables, a_t, b_t, ab_t
+        b_t: \beta_t
+        a_t: \alpha_t
+        ab_t \bar{\alpha}_t
+        """
+        b_t = torch.linspace(beta1, beta2, timesteps+1, device=device)
         a_t = 1 - b_t
         ab_t = torch.cumprod(a_t, dim=0)
         return a_t, b_t, ab_t
