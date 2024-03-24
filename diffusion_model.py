@@ -213,8 +213,10 @@ class DiffusionModel(nn.Module):
     
     def get_ddpm_params_from_checkpoint(self, file_dir, checkpoint_name, device):
         checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
-                                map_location=device)
-        return checkpoint["timesteps"], checkpoint["a_t"], checkpoint["b_t"], checkpoint["ab_t"]
+                                map_location=torch.device("cpu"))
+        timesteps = checkpoint["timesteps"]
+        a_t, b_t, ab_t = self.get_ddpm_noise_schedule(timesteps, checkpoint["beta1"], checkpoint["beta2"], device)
+        return timesteps, a_t, b_t, ab_t
     
     def denoise_add_noise(self, x, t, pred_noise, a_t, b_t, ab_t, z):
         noise = b_t.sqrt()[t]*z
