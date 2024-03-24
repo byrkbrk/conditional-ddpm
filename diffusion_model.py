@@ -39,11 +39,7 @@ class DiffusionModel(nn.Module):
 
             for x, c in tqdm(dataloader, mininterval=2, desc=f"Epoch {epoch}"):
                 x = x.to(self.device)
-                c = c.to(self.device).squeeze()
-                
-                # randomly mask out c
-                context_mask = torch.bernoulli(torch.zeros(c.shape[0]) + 0.9).to(self.device)
-                c = c * context_mask.unsqueeze(-1)
+                c = self.get_masked_context(c).to(self.device)
                 
                 # perturb data
                 noise = torch.randn_like(x)
@@ -235,3 +231,7 @@ class DiffusionModel(nn.Module):
             batch_size = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
                                     map_location=torch.device("cpu"))["batch_size"]
         return DataLoader(dataset, batch_size, True)
+    
+    def get_masked_context(self, context, p=0.9):
+        "Randomly mask out context"
+        return context*torch.bernoulli(torch.ones((context.shape[0], 1))*p)
