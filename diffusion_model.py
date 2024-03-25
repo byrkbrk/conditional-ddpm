@@ -117,7 +117,7 @@ class DiffusionModel(nn.Module):
             target_transform = transforms.Compose([
                 lambda x: torch.tensor([x]),
                 lambda class_labels, n_classes=10: nn.functional.one_hot(
-                class_labels, n_classes)
+                class_labels, n_classes).squeeze()
             ])
 
         if dataset_name=="sprite":
