@@ -77,86 +77,133 @@ class EmbedFC(nn.Module):
 
 
 class ContextUnet(nn.Module):
-    def __init__(self, in_channels, height, width, n_feat, n_cfeat):
+    def __init__(self, in_channels, height, width, n_feat, n_cfeat, n_downs=2):
         super(ContextUnet, self).__init__()
         self.in_channels = in_channels
         self.height = height
         self.width = width
-        self.n_feat = n_feat
-        self.n_cfeat = n_cfeat
+        self.n_feat = n_feat 
+        self.n_cfeat = n_cfeat # number of context features i.e., number of labels
+        self.n_downs = n_downs # number of upward & downward blocks
 
         self.init_conv = ResidualConvBlock(in_channels, n_feat, True)
-        self.down1 = UNetDown(n_feat, n_feat)
-        self.down2 = UNetDown(n_feat, 2*n_feat)
+        
+        self.down_blocks = nn.ModuleList()
+        for i in range(n_downs):
+            if i == 0: self.down_blocks.append(UNetDown(n_feat, n_feat))
+            else: self.down_blocks.append(UNetDown(2**(i-1)*n_feat, 2**i*n_feat))
+        
         self.to_vec = nn.Sequential(
-            nn.AvgPool2d((height//2**2, width//2**2)), 
+            nn.AvgPool2d((height//2**len(self.down_blocks), width//2**len(self.down_blocks))), 
             nn.GELU())
         self.up0 = nn.Sequential(
-            nn.ConvTranspose2d(2*n_feat, 2*n_feat, (height//2**2, width//2**2)),
-            nn.GroupNorm(8, 2*n_feat),
+            nn.ConvTranspose2d(
+                2**(n_downs-1)*n_feat, 
+                2**(n_downs-1)*n_feat, 
+                (height//2**len(self.down_blocks), width//2**len(self.down_blocks))),
+            nn.GroupNorm(8, 2**(n_downs - 1)*n_feat),
             nn.GELU()
         )
-        self.up1 = UNetUp(4*n_feat, n_feat)
-        self.up2 = UNetUp(2*n_feat, n_feat)
-        self.out = nn.Sequential(
+        
+        self.up_blocks = nn.ModuleList()
+        for i in range(n_downs, 1, -1):
+            self.up_blocks.append(UNetUp(2*2**(i-1)*n_feat, 2**(i-2)*n_feat))
+        self.up_blocks.append(UNetUp(2*n_feat, n_feat))
+
+        self.final_conv = nn.Sequential(
             nn.Conv2d(2*n_feat, n_feat, 3, 1, 1),
             nn.GroupNorm(8, n_feat),
             nn.GELU(),
             nn.Conv2d(n_feat, in_channels, 1, 1)
         )
-        
-        self.timeemb1 = EmbedFC(1, 2*n_feat)
-        self.timeemb2 = EmbedFC(1, n_feat)
-        self.contextemb1 = EmbedFC(n_cfeat, 2*n_feat)
-        self.contextemb2 = EmbedFC(n_cfeat, n_feat)
 
-    def forward(self, x, t, c=None):
-        if c is None: # unconditional case
-            c = torch.zeros(x.shape[0], self.n_cfeat).to(x.device)
+        self.timeembs = nn.ModuleList([EmbedFC(1, 2**(i-1)*n_feat) for i in range(n_downs, 0, -1)])
+        self.contextembs = nn.ModuleList([EmbedFC(n_cfeat, 2**(i-1)*n_feat) for i in range(n_downs, 0, -1)])
+        
+        # unused attributes
+        # self.down1 = UNetDown(n_feat, n_feat)
+        # self.down2 = UNetDown(n_feat, 2*n_feat)
+        # self.to_vec = nn.Sequential(
+        #     nn.AvgPool2d((height//2**2, width//2**2)), 
+        #     nn.GELU())
+        # self.up0 = nn.Sequential(
+        #     nn.ConvTranspose2d(2*n_feat, 2*n_feat, (height//2**2, width//2**2)),
+        #     nn.GroupNorm(8, 2*n_feat),
+        #     nn.GELU()
+        # )
+        # self.up1 = UNetUp(4*n_feat, n_feat)
+        # self.up2 = UNetUp(2*n_feat, n_feat)
+        # self.out = nn.Sequential(
+        #     nn.Conv2d(2*n_feat, n_feat, 3, 1, 1),
+        #     nn.GroupNorm(8, n_feat),
+        #     nn.GELU(),
+        #     nn.Conv2d(n_feat, in_channels, 1, 1)
+        # )
+        
+        # self.timeemb1 = EmbedFC(1, 2*n_feat)
+        # self.timeemb2 = EmbedFC(1, n_feat)
+        # self.contextemb1 = EmbedFC(n_cfeat, 2*n_feat)
+        # self.contextemb2 = EmbedFC(n_cfeat, n_feat)
+
+    def forward(self, x, t, c):
         x = self.init_conv(x)
-        down1 = self.down1(x)
-        down2 = self.down2(down1)
-        hidden_vec = self.to_vec(down2)
-        up0 = self.up0(hidden_vec)
-        up1 = self.up1(up0*self.contextemb1(c) + self.timeemb1(t), down2)
-        up2 = self.up2(up1*self.contextemb2(c) + self.timeemb2(t), down1)
-        return self.out(torch.cat([up2, x], axis=1))
+        downs = []
+        for i, down_block in enumerate(self.down_blocks):
+            if i == 0: downs.append(down_block(x))
+            else: downs.append(down_block(downs[-1]))
+        hidden_vec = self.to_vec(downs[-1])
+        up = self.up0(hidden_vec)
+        for up_block, down, contextemb, timeemb in zip(self.up_blocks, downs[::-1], self.contextembs, self.timeembs):
+            up = up_block(up*contextemb(c) + timeemb(t), down)
+        return self.final_conv(torch.cat([up, x], axis=1))
+
+        # down1 = self.down1(x)
+        # down2 = self.down2(down1)
+        # hidden_vec = self.to_vec(down2)
+        # up0 = self.up0(hidden_vec)
+        # up1 = self.up1(up0*self.contextemb1(c) + self.timeemb1(t), down2)
+        # up2 = self.up2(up1*self.contextemb2(c) + self.timeemb2(t), down1)
+        # return self.out(torch.cat([up2, x], axis=1))
 
 
 
 if __name__ == "__main__":
-    x = torch.randn(5, 4, 8, 8)
-    res_conv_block = ResidualConvBlock(4, 8, False)
-    print(x.shape)
-    print(res_conv_block(x).shape)
+    # x = torch.randn(5, 4, 8, 8)
+    # res_conv_block = ResidualConvBlock(4, 8, False)
+    # print(x.shape)
+    # print(res_conv_block(x).shape)
 
-    unet_down = UNetDown(4, 36)
-    print(x.shape)
-    print(unet_down(x).shape)
+    # unet_down = UNetDown(4, 36)
+    # print(x.shape)
+    # print(unet_down(x).shape)
 
-    x_skip = torch.randn(5, 4, 8, 8)
-    unet_up = UNetUp(8, 2)
-    print(x.shape)
-    print(unet_up(x, x_skip).shape)
+    # x_skip = torch.randn(5, 4, 8, 8)
+    # unet_up = UNetUp(8, 2)
+    # print(x.shape)
+    # print(unet_up(x, x_skip).shape)
 
-    x_emb = torch.randn(5, 16)
-    embed_fc = EmbedFC(16, 32)
-    print(x_emb.shape)
-    print(embed_fc(x_emb).shape)
+    # x_emb = torch.randn(5, 16)
+    # embed_fc = EmbedFC(16, 32)
+    # print(x_emb.shape)
+    # print(embed_fc(x_emb).shape)
 
-    in_channels = 1
-    height = width = 64
+    in_channels = 3
+    height = width = 16
     n_feature = 64
     n_cfeature = 10
-    context_unet = ContextUnet(in_channels, height, width, n_feature, n_cfeature)
+    n_downs = 4
+    device = torch.device("mps")
+    context_unet = ContextUnet(in_channels, height, width, n_feature, n_cfeature, n_downs).to(device)
+    print(context_unet)
     
     timesteps = 100
     n_samples = 7
-    x = torch.randn(n_samples, in_channels, height, width)
-    c = torch.rand(n_samples, n_cfeature)
-    t = torch.randint(1, timesteps + 1, (n_samples, ))
+    x = torch.randn(n_samples, in_channels, height, width, device=device)
+    c = torch.rand(n_samples, n_cfeature, device=device)
+    t = torch.randint(1, timesteps + 1, (n_samples, ), device=device)
     print(x.shape)
     print(context_unet(x, t/timesteps, c).shape)
+
             
 
 
