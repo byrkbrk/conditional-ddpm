@@ -136,11 +136,11 @@ class DiffusionModel(nn.Module):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset name"
 
         if dataset_name in {"mnist", "fashion_mnist"}:
-            nn_model = ContextUnet(in_channels=1, height=28, width=28, n_feat=64, n_cfeat=10)
+            nn_model = ContextUnet(in_channels=1, height=28, width=28, n_feat=64, n_cfeat=10, n_downs=2)
         if dataset_name=="sprite":
-            nn_model = ContextUnet(in_channels=3, height=16, width=16, n_feat=64, n_cfeat=5)
+            nn_model = ContextUnet(in_channels=3, height=16, width=16, n_feat=64, n_cfeat=5, n_downs=2)
         if dataset_name == "cifar10":
-            nn_model = ContextUnet(in_channels=3, height=32, width=32, n_feat=64, n_cfeat=10)
+            nn_model = ContextUnet(in_channels=3, height=32, width=32, n_feat=64, n_cfeat=10, n_downs=4)
 
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
