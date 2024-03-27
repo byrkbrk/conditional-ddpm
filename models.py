@@ -37,7 +37,7 @@ class ResidualConvBlock(nn.Module):
 class UNetDown(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(UNetDown, self).__init__()
-        layers = [ResidualConvBlock(in_channels, out_channels), # no skip-connection
+        layers = [ResidualConvBlock(in_channels, out_channels, True), # use skip-connection
                   ResidualConvBlock(out_channels, out_channels),
                   nn.MaxPool2d(2)]
         self.model = nn.Sequential(*layers)
@@ -51,7 +51,7 @@ class UNetUp(nn.Module):
         super(UNetUp, self).__init__()
         layers = [
             nn.ConvTranspose2d(in_channels, out_channels, 2, 2), # double h & w sizes
-            ResidualConvBlock(out_channels, out_channels), # no residual-connection
+            ResidualConvBlock(out_channels, out_channels, True), # use residual-connection
             ResidualConvBlock(out_channels, out_channels)
         ]
         self.model = nn.Sequential(*layers)
@@ -82,17 +82,20 @@ class ContextUnet(nn.Module):
         self.in_channels = in_channels
         self.height = height
         self.width = width
-        self.n_feat = n_feat 
+        self.n_feat = n_feat   # number of features
         self.n_cfeat = n_cfeat # number of context features i.e., number of labels
         self.n_downs = n_downs # number of upward & downward blocks
 
+        # Define initial convolution
         self.init_conv = ResidualConvBlock(in_channels, n_feat, True)
         
+        # Define downward unet blocks
         self.down_blocks = nn.ModuleList()
         for i in range(n_downs):
             if i == 0: self.down_blocks.append(UNetDown(n_feat, n_feat))
             else: self.down_blocks.append(UNetDown(2**(i-1)*n_feat, 2**i*n_feat))
         
+        # Define at the center layers
         self.to_vec = nn.Sequential(
             nn.AvgPool2d((height//2**len(self.down_blocks), width//2**len(self.down_blocks))), 
             nn.GELU())
@@ -105,11 +108,13 @@ class ContextUnet(nn.Module):
             nn.GELU()
         )
         
+        # Define upward unet blocks
         self.up_blocks = nn.ModuleList()
         for i in range(n_downs, 1, -1):
             self.up_blocks.append(UNetUp(2*2**(i-1)*n_feat, 2**(i-2)*n_feat))
         self.up_blocks.append(UNetUp(2*n_feat, n_feat))
 
+        # Define final convolutional layer
         self.final_conv = nn.Sequential(
             nn.Conv2d(2*n_feat, n_feat, 3, 1, 1),
             nn.GroupNorm(8, n_feat),
@@ -117,6 +122,7 @@ class ContextUnet(nn.Module):
             nn.Conv2d(n_feat, in_channels, 1, 1)
         )
 
+        # Define time & context embedding blocks 
         self.timeembs = nn.ModuleList([EmbedFC(1, 2**(i-1)*n_feat) for i in range(n_downs, 0, -1)])
         self.contextembs = nn.ModuleList([EmbedFC(n_cfeat, 2**(i-1)*n_feat) for i in range(n_downs, 0, -1)])
         
