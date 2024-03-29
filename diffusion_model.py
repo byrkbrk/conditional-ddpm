@@ -21,7 +21,8 @@ class DiffusionModel(nn.Module):
         self.nn_model = self.initialize_nn_model(self.dataset_name, checkpoint_name, self.file_dir, self.device)
         self.create_dirs(self.file_dir)
 
-    def train(self, batch_size=64, n_epoch=32, lr=1e-3, timesteps=500, beta1=1e-4, beta2=0.02):
+    def train(self, batch_size=64, n_epoch=32, lr=1e-3, timesteps=500, beta1=1e-4, beta2=0.02,
+              checkpoint_save_dir=None, image_save_dir=None):
         self.nn_model.train()
         
         # noise schedule
@@ -60,10 +61,11 @@ class DiffusionModel(nn.Module):
                 ave_loss += loss.item()/len(dataloader)
             scheduler.step()
             print(f"Epoch: {epoch}, loss: {ave_loss}")
-            self.save_tensor_images(x, x_pert, self.get_x_unpert(x_pert, t, pred_noise, ab_t), epoch, self.file_dir)
+            self.save_tensor_images(x, x_pert, self.get_x_unpert(x_pert, t, pred_noise, ab_t), 
+                                    epoch, self.file_dir, image_save_dir)
             self.save_checkpoint(self.nn_model, optim, scheduler, epoch, ave_loss, 
                                  timesteps, beta1, beta2, self.device, self.dataset_name,
-                                 dataloader.batch_size, self.file_dir)
+                                 dataloader.batch_size, self.file_dir, checkpoint_save_dir)
 
     @torch.no_grad()
     def sample_ddpm(self, n_samples, context=None, save_rate=20, timesteps=None, beta1=None, beta2=None):
@@ -151,7 +153,12 @@ class DiffusionModel(nn.Module):
 
     def save_checkpoint(self, model, optimizer, scheduler, epoch, loss, 
                         timesteps, beta1, beta2, device, dataset_name, batch_size, 
-                        file_dir):
+                        file_dir, save_dir):
+        if save_dir is None:
+            fpath = os.path.join(file_dir, "checkpoints", f"{dataset_name}_checkpoint_{epoch}.pth")
+        else:
+            fpath = os.path.join(save_dir, f"{dataset_name}_checkpoint_{epoch}.pth")
+
         checkpoint = {
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
@@ -165,8 +172,7 @@ class DiffusionModel(nn.Module):
             "dataset_name": dataset_name,
             "batch_size": batch_size
         }
-        torch.save(checkpoint, os.path.join(
-            file_dir, "checkpoints", f"{dataset_name}_checkpoint_{epoch}.pth"))
+        torch.save(checkpoint, fpath)
 
     def create_dirs(self, file_dir):
         dir_names = ["checkpoints", "saved-images"]
@@ -196,9 +202,12 @@ class DiffusionModel(nn.Module):
             start_epoch = 0
         return start_epoch
     
-    def save_tensor_images(self, x_orig, x_noised, x_denoised, cur_epoch, file_dir):
-        save_image([make_grid(x_orig), make_grid(x_noised), make_grid(x_denoised)],
-                   os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg"))
+    def save_tensor_images(self, x_orig, x_noised, x_denoised, cur_epoch, file_dir, save_dir):
+        if save_dir is None:
+            fpath = os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg")
+        else:
+            fpath = os.path.join(save_dir, f"x_orig_noised_denoised_{cur_epoch}.jpeg")
+        save_image([make_grid(x_orig), make_grid(x_noised), make_grid(x_denoised)], fpath)
 
     def get_ddpm_noise_schedule(self, timesteps, beta1, beta2, device):
         """Returns ddpm noise schedule variables, a_t, b_t, ab_t
