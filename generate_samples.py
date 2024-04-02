@@ -7,7 +7,7 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate and save indiviaul images")
-    parser.add_argument("checkpoint-name", type=str, default=None, help="Checkpoint name of diffusion model")
+    parser.add_argument("checkpoint_name", type=str, default=None, help="Checkpoint name of diffusion model")
     parser.add_argument("--n-samples", type=int, default=100, help="Number of samples to generate")
     parser.add_argument("--device", type=str, default="cuda", help="GPU device to use")
     args = parser.parse_args()
