@@ -74,9 +74,10 @@ class DiffusionModel(nn.Module):
         else:
             timesteps, a_t, b_t, ab_t = self.get_ddpm_params_from_checkpoint(self.file_dir,
                                             self.checkpoint_name, self.device)
+        
+        self.nn_model.eval()
         samples = torch.randn(n_samples, self.nn_model.in_channels, 
                               self.nn_model.height, self.nn_model.width).to(self.device)
-        self.nn_model.eval()
         intermediate = [samples.detach().cpu()] # samples at T = timesteps
         t_steps = [timesteps] # keep record of time to use in animation generation
         for i in range(timesteps, 0, -1):
@@ -248,3 +249,9 @@ class DiffusionModel(nn.Module):
     def get_masked_context(self, context, p=0.9):
         "Randomly mask out context"
         return context*torch.bernoulli(torch.ones((context.shape[0], 1))*p)
+    
+    def save_generated_samples_into_folder(self, n_samples, context, folder_path, **kwargs):
+        """Save DDPM generated inputs into a specified directory"""
+        samples, _, _ = self.sample_ddpm(n_samples, context, **kwargs)
+        for i, sample in enumerate(samples):
+            save_image(sample, os.path.join(folder_path, f"image_{i}.jpeg"))
