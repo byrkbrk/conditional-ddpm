@@ -94,20 +94,20 @@ class DiffusionModel(nn.Module):
     def perturb_input(self, x, t, noise, ab_t):
         return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]).sqrt() * noise
     
-    def get_dataset(self, dataset_name, transforms, file_dir):
+    def get_dataset(self, dataset_name, transforms, file_dir, train=True):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset"
         
         transform, target_transform = transforms
         if dataset_name=="mnist":
-            return MNIST(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
+            return MNIST(os.path.join(file_dir, "datasets"), train, transform, target_transform, True)
         if dataset_name=="fashion_mnist":
-            return FashionMNIST(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
+            return FashionMNIST(os.path.join(file_dir, "datasets"), train, transform, target_transform, True)
         if dataset_name=="sprite":
             return SpriteDataset(os.path.join(file_dir, "datasets", "sprites_1788_16x16.npy"), 
                                  os.path.join(file_dir, "datasets", "sprite_labels_nc_1788_16x16.npy"), 
                                  transform, target_transform)
         if dataset_name=="cifar10":
-            return CIFAR10(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
+            return CIFAR10(os.path.join(file_dir, "datasets"), train, transform, target_transform, True)
 
     def get_transforms(self, dataset_name):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset"
@@ -262,7 +262,7 @@ class DiffusionModel(nn.Module):
         os.makedirs(folder_path, exist_ok=True)
 
         dataset = self.get_dataset(self.dataset_name, 
-                            (transforms.ToTensor(), None), self.file_dir)
+                            (transforms.ToTensor(), None), self.file_dir, train=False)
         dataloader = DataLoader(dataset, 1, True)
         for i, (image, _) in enumerate(dataloader):
             if i == n_samples: break
