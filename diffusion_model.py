@@ -255,3 +255,15 @@ class DiffusionModel(nn.Module):
         samples, _, _ = self.sample_ddpm(n_samples, context, **kwargs)
         for i, sample in enumerate(samples):
             save_image(sample, os.path.join(folder_path, f"image_{i}.jpeg"))
+    
+    def save_dataset_test_images(self, n_samples):
+        """Save dataset test images with specified number"""
+        folder_path = os.path.join(self.file_dir, f"{self.dataset_name}-test-images")
+        os.makedirs(folder_path, exist_ok=True)
+
+        dataset = self.get_dataset(self.dataset_name, 
+                            (transforms.ToTensor(), None), self.file_dir)
+        dataloader = DataLoader(dataset, 1, True)
+        for i, (image, _) in enumerate(dataloader):
+            if i == n_samples: break
+            save_image(image, os.path.join(folder_path, f"image_{i}.jpeg"))
