@@ -39,17 +39,9 @@ def generate_animation(intermediate_samples, t_steps, fname, n_images_per_row=8)
 
 
 def get_custom_context(n_samples, n_classes, device):
+    """Returns custom context in one-hot encoded form"""
     context = []
     for i in range(n_classes - 1):
         context.extend([i]*(n_samples//n_classes))
     context.extend([n_classes - 1]*(n_samples - len(context)))
     return torch.nn.functional.one_hot(torch.tensor(context), n_classes).float().to(device)
-    
-
-if __name__ == "__main__":
-    n_samples = 30
-    n_classes = 10
-    device = torch.device("mps")
-    c = get_custom_context(n_samples, n_classes, device)
-    print(c.shape)
-    print(c)
