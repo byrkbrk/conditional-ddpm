@@ -10,6 +10,7 @@ if __name__ == "__main__":
     parser.add_argument("checkpoint_name", type=str, default=None, help="Checkpoint name of diffusion model")
     parser.add_argument("--n-samples", type=int, default=100, help="Number of samples to generate")
     parser.add_argument("--device", type=str, default="cuda", help="GPU device to use")
+    parser.add_argument("--save-test-dataset", type=bool, default=False, help="Save test dataset into folder")
     args = parser.parse_args()
     
     # define folder path & create into which generated images be saved
@@ -23,5 +24,6 @@ if __name__ == "__main__":
                                                                           diffusion_model.nn_model.n_cfeat, 
                                                                           diffusion_model.device),
                                                        folder_path)
-
+    if args.save_test_dataset:
+        diffusion_model.save_dataset_test_images(args.n_samples)
 
