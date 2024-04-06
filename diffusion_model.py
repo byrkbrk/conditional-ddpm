@@ -209,7 +209,9 @@ class DiffusionModel(nn.Module):
             fpath = os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg")
         else:
             fpath = os.path.join(save_dir, f"x_orig_noised_denoised_{cur_epoch}.jpeg")
-        save_image([make_grid(x_orig), make_grid(x_noised), make_grid(x_denoised)], fpath)
+        save_image([make_grid(x_orig, normalize=True), 
+                    make_grid(x_noised, normalize=True), 
+                    make_grid(x_denoised, normalize=True)], fpath)
 
     def get_ddpm_noise_schedule(self, timesteps, beta1, beta2, device):
         """Returns ddpm noise schedule variables, a_t, b_t, ab_t
