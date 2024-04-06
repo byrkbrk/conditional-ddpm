@@ -190,7 +190,7 @@ class DiffusionModel(nn.Module):
 
     def initialize_scheduler(self, optimizer, checkpoint_name, file_dir, device):
         scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, 
-                                                    total_iters=32)
+                                                    total_iters=50)
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
             scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
