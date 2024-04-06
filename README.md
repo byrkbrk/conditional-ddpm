@@ -33,12 +33,12 @@ python3 train.py --dataset-name mnist --device your-device
 ~~~
 Above, please change `your-device` input, as either `cuda` or `mps`.
 
-In order to sample, run:
+In order to sample from a (pre-trained) checkpoint, run:
 ~~~
-python3 sample.py --checkpoint-name pre_trained_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20 --device your-device
+python3 sample.py pre_trained_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20 --device your-device
 ~~~
 
-Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below.
+Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each two rows represents a class label (in total 20 rows and 10 classes).
 
 
 <div style="display: flex;">
@@ -54,12 +54,12 @@ python3 train.py --dataset-name fashion_mnist --device your-device
 ~~~
 Above, please change `your-device` input, as either `cuda` or `mps`.
 
-In order to sample, run:
+In order to sample from a (pre-trained) checkpoint, run:
 ~~~
-python3 sample.py --checkpoint-name pre_trained_fashion_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20 --device your-device
+python3 sample.py pre_trained_fashion_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20 --device your-device
 ~~~
 
-Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below.
+Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each two rows represents a class label (in total 20 rows and 10 classes).
 
 <div style="display: flex;">
     <img src="files-for-readme/fashion_mnist_ddpm_images.jpeg" alt="mnist-jpeg" style="width: 45%; margin-right: 5%;">
@@ -73,12 +73,12 @@ python3 train.py --dataset-name sprite --device your-device
 ~~~
 Above, please change `your-device` input, as either `cuda` or `mps`.
 
-In order to sample, run:
+In order to sample from a (pre-trained) checkpoint, run:
 ~~~
-python3 sample.py --checkpoint-name pre_trained_sprite_checkpoint_49.pth --n-samples 225 --n-images-per-row 15 --device your-device
+python3 sample.py pre_trained_sprite_checkpoint_49.pth --n-samples 225 --n-images-per-row 15 --device your-device
 ~~~
 
-Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below.
+Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each three rows represents a class label (in total 15 rows and 5 classes).
 
 <div style="display: flex;">
     <img src="files-for-readme/sprite_ddpm_images.jpeg" alt="mnist-jpeg" style="width: 45%; margin-right: 5%;">
