@@ -21,7 +21,8 @@ class DiffusionModel(nn.Module):
         self.nn_model = self.initialize_nn_model(self.dataset_name, checkpoint_name, self.file_dir, self.device)
         self.create_dirs(self.file_dir)
 
-    def train(self, batch_size=64, n_epoch=32, lr=1e-3, timesteps=500, beta1=1e-4, beta2=0.02):
+    def train(self, batch_size=64, n_epoch=32, lr=1e-3, timesteps=500, beta1=1e-4, beta2=0.02,
+              checkpoint_save_dir=None, image_save_dir=None):
         self.nn_model.train()
         
         # noise schedule
@@ -60,10 +61,11 @@ class DiffusionModel(nn.Module):
                 ave_loss += loss.item()/len(dataloader)
             scheduler.step()
             print(f"Epoch: {epoch}, loss: {ave_loss}")
-            self.save_tensor_images(x, x_pert, self.get_x_unpert(x_pert, t, pred_noise, ab_t), epoch, self.file_dir)
+            self.save_tensor_images(x, x_pert, self.get_x_unpert(x_pert, t, pred_noise, ab_t), 
+                                    epoch, self.file_dir, image_save_dir)
             self.save_checkpoint(self.nn_model, optim, scheduler, epoch, ave_loss, 
                                  timesteps, beta1, beta2, self.device, self.dataset_name,
-                                 dataloader.batch_size, self.file_dir)
+                                 dataloader.batch_size, self.file_dir, checkpoint_save_dir)
 
     @torch.no_grad()
     def sample_ddpm(self, n_samples, context=None, save_rate=20, timesteps=None, beta1=None, beta2=None):
@@ -72,13 +74,15 @@ class DiffusionModel(nn.Module):
         else:
             timesteps, a_t, b_t, ab_t = self.get_ddpm_params_from_checkpoint(self.file_dir,
                                             self.checkpoint_name, self.device)
+        
+        self.nn_model.eval()
         samples = torch.randn(n_samples, self.nn_model.in_channels, 
                               self.nn_model.height, self.nn_model.width).to(self.device)
-        self.nn_model.eval()
         intermediate = [samples.detach().cpu()] # samples at T = timesteps
         t_steps = [timesteps] # keep record of time to use in animation generation
         for i in range(timesteps, 0, -1):
-            print(f"sampling timestep {i:3d}", end="\r")
+            print(f"Sampling timestep {i}", end="\r")
+            if i % 50 == 0: print(f"Sampling timestep {i}")
             t = torch.tensor([i / timesteps])[:, None, None, None].to(self.device)
             z = torch.randn_like(samples) if i > 1 else 0
             pred_noise = self.nn_model(samples, t, context)
@@ -91,20 +95,20 @@ class DiffusionModel(nn.Module):
     def perturb_input(self, x, t, noise, ab_t):
         return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]).sqrt() * noise
     
-    def get_dataset(self, dataset_name, transforms, file_dir):
+    def get_dataset(self, dataset_name, transforms, file_dir, train=True):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset"
         
         transform, target_transform = transforms
         if dataset_name=="mnist":
-            return MNIST(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
+            return MNIST(os.path.join(file_dir, "datasets"), train, transform, target_transform, True)
         if dataset_name=="fashion_mnist":
-            return FashionMNIST(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
+            return FashionMNIST(os.path.join(file_dir, "datasets"), train, transform, target_transform, True)
         if dataset_name=="sprite":
             return SpriteDataset(os.path.join(file_dir, "datasets", "sprites_1788_16x16.npy"), 
                                  os.path.join(file_dir, "datasets", "sprite_labels_nc_1788_16x16.npy"), 
                                  transform, target_transform)
         if dataset_name=="cifar10":
-            return CIFAR10(os.path.join(file_dir, "datasets"), True, transform, target_transform, True)
+            return CIFAR10(os.path.join(file_dir, "datasets"), train, transform, target_transform, True)
 
     def get_transforms(self, dataset_name):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset"
@@ -136,11 +140,11 @@ class DiffusionModel(nn.Module):
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset name"
 
         if dataset_name in {"mnist", "fashion_mnist"}:
-            nn_model = ContextUnet(in_channels=1, height=28, width=28, n_feat=64, n_cfeat=10)
+            nn_model = ContextUnet(in_channels=1, height=28, width=28, n_feat=64, n_cfeat=10, n_downs=2)
         if dataset_name=="sprite":
-            nn_model = ContextUnet(in_channels=3, height=16, width=16, n_feat=64, n_cfeat=5)
+            nn_model = ContextUnet(in_channels=3, height=16, width=16, n_feat=64, n_cfeat=5, n_downs=2)
         if dataset_name == "cifar10":
-            nn_model = ContextUnet(in_channels=3, height=32, width=32, n_feat=64, n_cfeat=10)
+            nn_model = ContextUnet(in_channels=3, height=32, width=32, n_feat=64, n_cfeat=10, n_downs=4)
 
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
@@ -151,7 +155,12 @@ class DiffusionModel(nn.Module):
 
     def save_checkpoint(self, model, optimizer, scheduler, epoch, loss, 
                         timesteps, beta1, beta2, device, dataset_name, batch_size, 
-                        file_dir):
+                        file_dir, save_dir):
+        if save_dir is None:
+            fpath = os.path.join(file_dir, "checkpoints", f"{dataset_name}_checkpoint_{epoch}.pth")
+        else:
+            fpath = os.path.join(save_dir, f"{dataset_name}_checkpoint_{epoch}.pth")
+
         checkpoint = {
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
@@ -165,8 +174,7 @@ class DiffusionModel(nn.Module):
             "dataset_name": dataset_name,
             "batch_size": batch_size
         }
-        torch.save(checkpoint, os.path.join(
-            file_dir, "checkpoints", f"{dataset_name}_checkpoint_{epoch}.pth"))
+        torch.save(checkpoint, fpath)
 
     def create_dirs(self, file_dir):
         dir_names = ["checkpoints", "saved-images"]
@@ -182,7 +190,7 @@ class DiffusionModel(nn.Module):
 
     def initialize_scheduler(self, optimizer, checkpoint_name, file_dir, device):
         scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, 
-                                                    total_iters=32)
+                                                    total_iters=50)
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
             scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
@@ -196,9 +204,12 @@ class DiffusionModel(nn.Module):
             start_epoch = 0
         return start_epoch
     
-    def save_tensor_images(self, x_orig, x_noised, x_denoised, cur_epoch, file_dir):
-        save_image([make_grid(x_orig), make_grid(x_noised), make_grid(x_denoised)],
-                   os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg"))
+    def save_tensor_images(self, x_orig, x_noised, x_denoised, cur_epoch, file_dir, save_dir):
+        if save_dir is None:
+            fpath = os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg")
+        else:
+            fpath = os.path.join(save_dir, f"x_orig_noised_denoised_{cur_epoch}.jpeg")
+        save_image([make_grid(x_orig), make_grid(x_noised), make_grid(x_denoised)], fpath)
 
     def get_ddpm_noise_schedule(self, timesteps, beta1, beta2, device):
         """Returns ddpm noise schedule variables, a_t, b_t, ab_t
@@ -239,3 +250,21 @@ class DiffusionModel(nn.Module):
     def get_masked_context(self, context, p=0.9):
         "Randomly mask out context"
         return context*torch.bernoulli(torch.ones((context.shape[0], 1))*p)
+    
+    def save_generated_samples_into_folder(self, n_samples, context, folder_path, **kwargs):
+        """Save DDPM generated inputs into a specified directory"""
+        samples, _, _ = self.sample_ddpm(n_samples, context, **kwargs)
+        for i, sample in enumerate(samples):
+            save_image(sample, os.path.join(folder_path, f"image_{i}.jpeg"))
+    
+    def save_dataset_test_images(self, n_samples):
+        """Save dataset test images with specified number"""
+        folder_path = os.path.join(self.file_dir, f"{self.dataset_name}-test-images")
+        os.makedirs(folder_path, exist_ok=True)
+
+        dataset = self.get_dataset(self.dataset_name, 
+                            (transforms.ToTensor(), None), self.file_dir, train=False)
+        dataloader = DataLoader(dataset, 1, True)
+        for i, (image, _) in enumerate(dataloader):
+            if i == n_samples: break
+            save_image(image, os.path.join(folder_path, f"image_{i}.jpeg"))

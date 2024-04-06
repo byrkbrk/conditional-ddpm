@@ -1,4 +1,4 @@
-# Diffusion model
+# Conditional DDPM
 
 ## Introduction
 
@@ -38,7 +38,7 @@ In order to sample, run:
 python3 sample.py --checkpoint-name pre_trained_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20 --device your-device
 ~~~
 
-Results (jpeg and gif files) will be saved into `generated-images` directory.
+Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below.
 
 
 <div style="display: flex;">
@@ -59,7 +59,7 @@ In order to sample, run:
 python3 sample.py --checkpoint-name pre_trained_fashion_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20 --device your-device
 ~~~
 
-Results (jpeg and gif files) will be saved into `generated-images` directory.
+Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below.
 
 <div style="display: flex;">
     <img src="files-for-readme/fashion_mnist_ddpm_images.jpeg" alt="mnist-jpeg" style="width: 45%; margin-right: 5%;">
@@ -78,7 +78,7 @@ In order to sample, run:
 python3 sample.py --checkpoint-name pre_trained_sprite_checkpoint_49.pth --n-samples 225 --n-images-per-row 15 --device your-device
 ~~~
 
-Results (jpeg and gif files) will be saved into `generated-images` directory.
+Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below.
 
 <div style="display: flex;">
     <img src="files-for-readme/sprite_ddpm_images.jpeg" alt="mnist-jpeg" style="width: 45%; margin-right: 5%;">
