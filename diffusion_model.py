@@ -81,7 +81,7 @@ class DiffusionModel(nn.Module):
         intermediate = [samples.detach().cpu()] # samples at T = timesteps
         t_steps = [timesteps] # keep record of time to use in animation generation
         for i in range(timesteps, 0, -1):
-            print(f"Sampling timestep {i:3d}", end="\r")
+            print(f"Sampling timestep {i}", end="\r")
             if i % 50 == 0: print(f"Sampling timestep {i}")
             t = torch.tensor([i / timesteps])[:, None, None, None].to(self.device)
             z = torch.randn_like(samples) if i > 1 else 0
@@ -209,9 +209,7 @@ class DiffusionModel(nn.Module):
             fpath = os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg")
         else:
             fpath = os.path.join(save_dir, f"x_orig_noised_denoised_{cur_epoch}.jpeg")
-        save_image([make_grid(x_orig, normalize=True), 
-                    make_grid(x_noised, normalize=True), 
-                    make_grid(x_denoised, normalize=True)], fpath)
+        save_image([make_grid(x_orig), make_grid(x_noised), make_grid(x_denoised)], fpath)
 
     def get_ddpm_noise_schedule(self, timesteps, beta1, beta2, device):
         """Returns ddpm noise schedule variables, a_t, b_t, ab_t
