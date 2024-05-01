@@ -142,6 +142,7 @@ class DiffusionModel(nn.Module):
         return transform, target_transform
     
     def get_x_unpert(self, x_pert, t, pred_noise, ab_t):
+        """Removes predicted noise pred_noise from perturbed image x_pert"""
         return (x_pert - (1 - ab_t[t, None, None, None]).sqrt() * pred_noise) / ab_t.sqrt()[t, None, None, None]
     
     def initialize_nn_model(self, dataset_name, checkpoint_name, file_dir, device):
@@ -150,9 +151,9 @@ class DiffusionModel(nn.Module):
 
         if dataset_name in {"mnist", "fashion_mnist"}:
             nn_model = ContextUnet(in_channels=1, height=28, width=28, n_feat=64, n_cfeat=10, n_downs=2)
-        if dataset_name=="sprite":
+        elif dataset_name=="sprite":
             nn_model = ContextUnet(in_channels=3, height=16, width=16, n_feat=64, n_cfeat=5, n_downs=2)
-        if dataset_name == "cifar10":
+        elif dataset_name == "cifar10":
             nn_model = ContextUnet(in_channels=3, height=32, width=32, n_feat=64, n_cfeat=10, n_downs=4)
 
         if checkpoint_name:
@@ -165,6 +166,7 @@ class DiffusionModel(nn.Module):
     def save_checkpoint(self, model, optimizer, scheduler, epoch, loss, 
                         timesteps, beta1, beta2, device, dataset_name, batch_size, 
                         file_dir, save_dir):
+        """Saves checkpoint for given variables"""
         if save_dir is None:
             fpath = os.path.join(file_dir, "checkpoints", f"{dataset_name}_checkpoint_{epoch}.pth")
         else:
@@ -186,11 +188,13 @@ class DiffusionModel(nn.Module):
         torch.save(checkpoint, fpath)
 
     def create_dirs(self, file_dir):
+        """Creates directories required for training"""
         dir_names = ["checkpoints", "saved-images"]
         for dir_name in dir_names:
             os.makedirs(os.path.join(file_dir, dir_name), exist_ok=True)
 
     def initialize_optimizer(self, nn_model, lr, checkpoint_name, file_dir, device):
+        """Instantiates and initializes the optimizer based on checkpoint availability"""
         optim = torch.optim.Adam(nn_model.parameters(), lr=lr)
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
@@ -198,14 +202,16 @@ class DiffusionModel(nn.Module):
         return optim
 
     def initialize_scheduler(self, optimizer, checkpoint_name, file_dir, device):
-        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, end_factor=0.01, 
-                                                    total_iters=50)
+        """Instantiates and initializes scheduler based on checkpoint availability"""
+        scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=1, 
+                                                      end_factor=0.01, total_iters=50)
         if checkpoint_name:
             checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), map_location=device)
             scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         return scheduler
     
     def get_start_epoch(self, checkpoint_name, file_dir):
+        """Returns starting epoch for training"""
         if checkpoint_name:
             start_epoch = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
                                     map_location=torch.device("cpu"))["epoch"] + 1
@@ -214,11 +220,13 @@ class DiffusionModel(nn.Module):
         return start_epoch
     
     def save_tensor_images(self, x_orig, x_noised, x_denoised, cur_epoch, file_dir, save_dir):
+        """Saves given tensors as a single image"""
         if save_dir is None:
             fpath = os.path.join(file_dir, "saved-images", f"x_orig_noised_denoised_{cur_epoch}.jpeg")
         else:
             fpath = os.path.join(save_dir, f"x_orig_noised_denoised_{cur_epoch}.jpeg")
-        save_image([make_grid(x_orig), make_grid(x_noised), make_grid(x_denoised)], fpath)
+        inference_transform = lambda x: (x + 1)/2
+        save_image([make_grid(inference_transform(img.detach())) for img in [x_orig, x_noised, x_denoised]], fpath)
 
     def get_ddpm_noise_schedule(self, timesteps, beta1, beta2, device):
         """Returns ddpm noise schedule variables, a_t, b_t, ab_t
@@ -232,11 +240,11 @@ class DiffusionModel(nn.Module):
         return a_t, b_t, ab_t
     
     def get_ddpm_params_from_checkpoint(self, file_dir, checkpoint_name, device):
-        checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
-                                map_location=torch.device("cpu"))
-        timesteps = checkpoint["timesteps"]
-        a_t, b_t, ab_t = self.get_ddpm_noise_schedule(timesteps, checkpoint["beta1"], checkpoint["beta2"], device)
-        return timesteps, a_t, b_t, ab_t
+        """Returns scheduler variables T, a_t, ab_t, and b_t from checkpoint"""
+        checkpoint = torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), torch.device("cpu"))
+        T = checkpoint["timesteps"]
+        a_t, b_t, ab_t = self.get_ddpm_noise_schedule(T, checkpoint["beta1"], checkpoint["beta2"], device)
+        return T, a_t, b_t, ab_t
     
     def denoise_add_noise(self, x, t, pred_noise, a_t, b_t, ab_t, z):
         """Removes predicted noise from x and adds gaussian noise z
@@ -247,6 +255,7 @@ class DiffusionModel(nn.Module):
         return denoised_x + noise
     
     def initialize_dataset_name(self, file_dir, checkpoint_name, dataset_name):
+        """Initializes dataset name based on checkpoint availability"""
         if checkpoint_name:
             return torch.load(os.path.join(file_dir, "checkpoints", checkpoint_name), 
                                     map_location=torch.device("cpu"))["dataset_name"]
