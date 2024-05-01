@@ -120,6 +120,7 @@ class DiffusionModel(nn.Module):
             return CIFAR10(os.path.join(file_dir, "datasets"), train, transform, target_transform, True)
 
     def get_transforms(self, dataset_name):
+        """Returns transform and target-transform for given dataset name"""
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset"
 
         if dataset_name in {"mnist", "fashion_mnist", "cifar10"}:
@@ -134,8 +135,8 @@ class DiffusionModel(nn.Module):
 
         if dataset_name=="sprite":
             transform = transforms.Compose([
-                transforms.ToTensor(),                # from [0,255] to range [0.0,1.0]
-                transforms.Normalize((0.5,), (0.5,))  # range [-1,1]
+                transforms.ToTensor(),  # from [0,255] to range [0.0,1.0]
+                lambda x: 2*x - 1       # range [-1,1]
             ])
             target_transform = lambda x: torch.from_numpy(x).to(torch.float32)
         return transform, target_transform
