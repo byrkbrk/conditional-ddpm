@@ -14,7 +14,7 @@ from utils import SpriteDataset
 class DiffusionModel(nn.Module):
     def __init__(self, device="cuda", dataset_name=None, checkpoint_name=None):
         super(DiffusionModel, self).__init__()
-        self.device = torch.device(device)
+        self.device = self.initialize_device(device)
         self.file_dir = os.path.dirname(__file__)
         self.dataset_name = self.initialize_dataset_name(self.file_dir, checkpoint_name, dataset_name)
         self.checkpoint_name = checkpoint_name
@@ -23,11 +23,9 @@ class DiffusionModel(nn.Module):
 
     def train(self, batch_size=64, n_epoch=32, lr=1e-3, timesteps=500, beta1=1e-4, beta2=0.02,
               checkpoint_save_dir=None, image_save_dir=None):
-        self.nn_model.train()
-        
-        # noise schedule
+        """Trains model for given inputs"""
+        self.nn_model.train()        
         _ , _, ab_t = self.get_ddpm_noise_schedule(timesteps, beta1, beta2, self.device)
-        
         dataset = self.get_dataset(self.dataset_name, 
                             self.get_transforms(self.dataset_name), self.file_dir)
         dataloader = self.initialize_dataloader(dataset, batch_size, self.checkpoint_name, self.file_dir)
@@ -69,28 +67,37 @@ class DiffusionModel(nn.Module):
 
     @torch.no_grad()
     def sample_ddpm(self, n_samples, context=None, save_rate=20, timesteps=None, beta1=None, beta2=None):
+        """Returns the final denoised sample x0,
+        intermediate samples xT, xT-1, ..., x1, and
+        times tT, tT-1, ..., t1
+        """
         if all([timesteps, beta1, beta2]):
             a_t, b_t, ab_t = self.get_ddpm_noise_schedule(timesteps, beta1, beta2, self.device)
         else:
             timesteps, a_t, b_t, ab_t = self.get_ddpm_params_from_checkpoint(self.file_dir,
-                                            self.checkpoint_name, self.device)
+                                                                             self.checkpoint_name, 
+                                                                             self.device)
         
         self.nn_model.eval()
         samples = torch.randn(n_samples, self.nn_model.in_channels, 
-                              self.nn_model.height, self.nn_model.width).to(self.device)
-        intermediate = [samples.detach().cpu()] # samples at T = timesteps
+                              self.nn_model.height, self.nn_model.width, 
+                              device=self.device)
+        intermediate_samples = [samples.detach().cpu()] # samples at T = timesteps
         t_steps = [timesteps] # keep record of time to use in animation generation
-        for i in range(timesteps, 0, -1):
-            print(f"Sampling timestep {i}", end="\r")
-            if i % 50 == 0: print(f"Sampling timestep {i}")
-            t = torch.tensor([i / timesteps])[:, None, None, None].to(self.device)
-            z = torch.randn_like(samples) if i > 1 else 0
-            pred_noise = self.nn_model(samples, t, context)
-            samples = self.denoise_add_noise(samples, i, pred_noise, a_t, b_t, ab_t, z)
-            if i % save_rate == 1 or i < 8:
-                intermediate.append(samples.detach().cpu())
-                t_steps.append(i-1)
-        return intermediate[-1], intermediate, t_steps
+        for t in range(timesteps, 0, -1):
+            print(f"Sampling timestep {t}", end="\r")
+            if t % 50 == 0: print(f"Sampling timestep {t}")
+
+            z = torch.randn_like(samples) if t > 1 else 0
+            pred_noise = self.nn_model(samples, 
+                                       torch.tensor([t/timesteps], device=self.device)[:, None, None, None], 
+                                       context)
+            samples = self.denoise_add_noise(samples, t, pred_noise, a_t, b_t, ab_t, z)
+            
+            if t % save_rate == 1 or t < 8:
+                intermediate_samples.append(samples.detach().cpu())
+                t_steps.append(t-1)
+        return intermediate_samples[-1], intermediate_samples, t_steps
 
     def perturb_input(self, x, t, noise, ab_t):
         return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]).sqrt() * noise
@@ -230,6 +237,9 @@ class DiffusionModel(nn.Module):
         return timesteps, a_t, b_t, ab_t
     
     def denoise_add_noise(self, x, t, pred_noise, a_t, b_t, ab_t, z):
+        """Removes predicted noise from x and adds gaussian noise z
+        i.e., Algorithm 2, step 4 at the ddpm article
+        """
         noise = b_t.sqrt()[t]*z
         denoised_x = (x - pred_noise * ((1 - a_t[t]) / (1 - ab_t[t]).sqrt())) / a_t[t].sqrt()
         return denoised_x + noise
@@ -268,3 +278,14 @@ class DiffusionModel(nn.Module):
         for i, (image, _) in enumerate(dataloader):
             if i == n_samples: break
             save_image(image, os.path.join(folder_path, f"image_{i}.jpeg"))
+
+    def initialize_device(self, device):
+        """Initializes device based on availability"""
+        if device is None:
+            if torch.cuda.is_available():
+                device = "cuda"
+            elif torch.backends.mps.is_available():
+                device = "mps"
+            else:
+                device = "cpu"
+        return torch.device(device)
