@@ -26,7 +26,7 @@ class DiffusionModel(nn.Module):
         """Trains model for given inputs"""
         self.nn_model.train()        
         _ , _, ab_t = self.get_ddpm_noise_schedule(timesteps, beta1, beta2, self.device)
-        dataset = self.get_dataset(self.dataset_name, 
+        dataset = self.instantiate_dataset(self.dataset_name, 
                             self.get_transforms(self.dataset_name), self.file_dir)
         dataloader = self.initialize_dataloader(dataset, batch_size, self.checkpoint_name, self.file_dir)
         optim = self.initialize_optimizer(self.nn_model, lr, self.checkpoint_name, self.file_dir, self.device)
@@ -100,9 +100,13 @@ class DiffusionModel(nn.Module):
         return intermediate_samples[-1], intermediate_samples, t_steps
 
     def perturb_input(self, x, t, noise, ab_t):
+        """Perturbs given input
+        i.e., Algorithm 1, step 5, argument of epsilon_theta in the article
+        """
         return ab_t.sqrt()[t, None, None, None] * x + (1 - ab_t[t, None, None, None]).sqrt() * noise
     
-    def get_dataset(self, dataset_name, transforms, file_dir, train=True):
+    def instantiate_dataset(self, dataset_name, transforms, file_dir, train=True):
+        """Returns instantiated dataset for given dataset name"""
         assert dataset_name in {"mnist", "fashion_mnist", "sprite", "cifar10"}, "Unknown dataset"
         
         transform, target_transform = transforms
@@ -111,9 +115,7 @@ class DiffusionModel(nn.Module):
         if dataset_name=="fashion_mnist":
             return FashionMNIST(os.path.join(file_dir, "datasets"), train, transform, target_transform, True)
         if dataset_name=="sprite":
-            return SpriteDataset(os.path.join(file_dir, "datasets", "sprites_1788_16x16.npy"), 
-                                 os.path.join(file_dir, "datasets", "sprite_labels_nc_1788_16x16.npy"), 
-                                 transform, target_transform)
+            return SpriteDataset(os.path.join(file_dir, "datasets"), transform, target_transform)
         if dataset_name=="cifar10":
             return CIFAR10(os.path.join(file_dir, "datasets"), train, transform, target_transform, True)
 
@@ -127,8 +129,7 @@ class DiffusionModel(nn.Module):
             ])
             target_transform = transforms.Compose([
                 lambda x: torch.tensor([x]),
-                lambda class_labels, n_classes=10: nn.functional.one_hot(
-                class_labels, n_classes).squeeze()
+                lambda class_labels, n_classes=10: nn.functional.one_hot(class_labels, n_classes).squeeze()
             ])
 
         if dataset_name=="sprite":
@@ -272,7 +273,7 @@ class DiffusionModel(nn.Module):
         folder_path = os.path.join(self.file_dir, f"{self.dataset_name}-test-images")
         os.makedirs(folder_path, exist_ok=True)
 
-        dataset = self.get_dataset(self.dataset_name, 
+        dataset = self.instantiate_dataset(self.dataset_name, 
                             (transforms.ToTensor(), None), self.file_dir, train=False)
         dataloader = DataLoader(dataset, 1, True)
         for i, (image, _) in enumerate(dataloader):
