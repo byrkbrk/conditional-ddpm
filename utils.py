@@ -20,7 +20,7 @@ class SpriteDataset(Dataset):
         return image, label
 
     def __len__(self):
-        return len(self.sprites)
+        return len(self.images)
 
 def generate_animation(intermediate_samples, t_steps, fname, n_images_per_row=8):
     intermediate_samples = [make_grid(x, scale_each=True, normalize=True, 
