@@ -7,12 +7,12 @@ from torchvision.datasets import MNIST, FashionMNIST, CIFAR10
 from tqdm import tqdm
 import os
 from models import ContextUnet
-from utils import SpriteDataset
+from utils import SpriteDataset, generate_animation
 
 
 
 class DiffusionModel(nn.Module):
-    def __init__(self, device="cuda", dataset_name=None, checkpoint_name=None):
+    def __init__(self, device=None, dataset_name=None, checkpoint_name=None):
         super(DiffusionModel, self).__init__()
         self.device = self.initialize_device(device)
         self.file_dir = os.path.dirname(__file__)
@@ -66,7 +66,8 @@ class DiffusionModel(nn.Module):
                                  dataloader.batch_size, self.file_dir, checkpoint_save_dir)
 
     @torch.no_grad()
-    def sample_ddpm(self, n_samples, context=None, save_rate=20, timesteps=None, beta1=None, beta2=None):
+    def sample_ddpm(self, n_samples, context=None, timesteps=None, 
+                    beta1=None, beta2=None, save_rate=20, inference_transform=lambda x: 2*(x+1)):
         """Returns the final denoised sample x0,
         intermediate samples xT, xT-1, ..., x1, and
         times tT, tT-1, ..., t1
@@ -95,7 +96,7 @@ class DiffusionModel(nn.Module):
             samples = self.denoise_add_noise(samples, t, pred_noise, a_t, b_t, ab_t, z)
             
             if t % save_rate == 1 or t < 8:
-                intermediate_samples.append(samples.detach().cpu())
+                intermediate_samples.append(inference_transform(samples.detach().cpu()))
                 t_steps.append(t-1)
         return intermediate_samples[-1], intermediate_samples, t_steps
 
@@ -300,3 +301,32 @@ class DiffusionModel(nn.Module):
             else:
                 device = "cpu"
         return torch.device(device)
+    
+    def get_custom_context(self, n_samples, n_classes, device):
+        """Returns custom context in one-hot encoded form"""
+        context = []
+        for i in range(n_classes - 1):
+            context.extend([i]*(n_samples//n_classes))
+        context.extend([n_classes - 1]*(n_samples - len(context)))
+        return torch.nn.functional.one_hot(torch.tensor(context), n_classes).float().to(device)
+    
+    def generate(self, n_samples, n_images_per_row, timesteps, beta1, beta2):
+        """Generates x0 and intermediate samples xi via DDPM, 
+        and saves as jpeg and gif files for given inputs
+        """
+        root = os.path.join(self.file_dir, "generated-images")
+        os.makedirs(root, exist_ok=True)
+        x0, intermediate_samples, t_steps = self.sample_ddpm(n_samples,
+                                                             self.get_custom_context(
+                                                                 n_samples, self.nn_model.n_cfeat, 
+                                                                 self.device),
+                                                             timesteps,
+                                                             beta1,
+                                                             beta2,)
+        save_image(x0, os.path.join(root, f"{self.dataset_name}_ddpm_images.jpeg"), nrow=n_images_per_row)
+        generate_animation(intermediate_samples,
+                           t_steps, 
+                           os.path.join(root, f"{self.dataset_name}_ani.gif"),
+                           n_images_per_row)
+
+
