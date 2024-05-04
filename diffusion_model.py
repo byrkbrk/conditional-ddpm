@@ -67,7 +67,7 @@ class DiffusionModel(nn.Module):
 
     @torch.no_grad()
     def sample_ddpm(self, n_samples, context=None, timesteps=None, 
-                    beta1=None, beta2=None, save_rate=20, inference_transform=lambda x: 2*(x+1)):
+                    beta1=None, beta2=None, save_rate=20, inference_transform=lambda x: (x+1)/2):
         """Returns the final denoised sample x0,
         intermediate samples xT, xT-1, ..., x1, and
         times tT, tT-1, ..., t1
