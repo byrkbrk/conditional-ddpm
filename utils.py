@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import os
 
+
+
 class SpriteDataset(Dataset):
     """Sprite dataset class"""
     def __init__(self, root, transform, target_transform):
@@ -23,9 +25,10 @@ class SpriteDataset(Dataset):
         return len(self.images)
 
 def generate_animation(intermediate_samples, t_steps, fname, n_images_per_row=8):
+    """Generates animation and saves as a gif file for given intermediate samples"""
     intermediate_samples = [make_grid(x, scale_each=True, normalize=True, 
                                       nrow=n_images_per_row).permute(1, 2, 0).numpy() for x in intermediate_samples]
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(5, 5))
     ax.axis("off")
     img_plot = ax.imshow(intermediate_samples[0])
     
