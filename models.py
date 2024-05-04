@@ -82,15 +82,24 @@ class EmbedFC(nn.Module):
 
 
 class ContextUnet(nn.Module):
-    """Context UNet model"""
+    """Context UNet model
+    Args:
+        in_channels (int): Number of channels in the input image
+        height (int): Height of the input image
+        width (int): Width of the input image
+        n_feat (int): Number of initial features i.e., hidden channels to which
+            the input image be transformed
+        n_cfeat (int): Number of context features i.e., class categories
+        n_downs (int): Number of down (and up) blocks of UNet. Default: 2
+    """
     def __init__(self, in_channels, height, width, n_feat, n_cfeat, n_downs=2):
         super(ContextUnet, self).__init__()
         self.in_channels = in_channels
         self.height = height
         self.width = width
-        self.n_feat = n_feat   # number of features
-        self.n_cfeat = n_cfeat # number of context features i.e., number of labels
-        self.n_downs = n_downs # number of upward & downward blocks
+        self.n_feat = n_feat
+        self.n_cfeat = n_cfeat
+        self.n_downs = n_downs
 
         # Define initial convolution
         self.init_conv = ResidualConvBlock(in_channels, n_feat, True)
