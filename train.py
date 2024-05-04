@@ -3,7 +3,8 @@ from diffusion_model import DiffusionModel
 
 
 
-def parse_args():
+def parse_arguments():
+    """Returns parsed arguments"""
     parser = argparse.ArgumentParser(description="Train diffusion model")
     parser.add_argument("--batch-size", type=int, default=128, help="Batch size for training")
     parser.add_argument("--epochs", type=int, default=50, help="Number of epochs for training")
@@ -20,7 +21,7 @@ def parse_args():
 
 
 if __name__=="__main__":
-    args = parse_args()
+    args = parse_arguments()
     diffusion_model = DiffusionModel(device=args.device, dataset_name=args.dataset_name, 
                                      checkpoint_name=args.checkpoint_name)
     diffusion_model.train(batch_size=args.batch_size, n_epoch=args.epochs, lr=args.lr,
