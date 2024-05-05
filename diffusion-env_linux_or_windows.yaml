@@ -10,5 +10,4 @@ dependencies:
   - torchvision
   - cudatoolkit=12.1
   - matplotlib
-  - numpy
   - tqdm

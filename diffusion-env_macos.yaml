@@ -9,5 +9,4 @@ dependencies:
   - pytorch
   - torchvision
   - matplotlib
-  - numpy
   - tqdm
