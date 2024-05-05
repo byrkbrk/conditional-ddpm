@@ -72,7 +72,7 @@ python3 train.py --dataset-name sprite
 
 In order to sample from our (pretrained) checkpoint, run:
 ~~~
-python3 sample.py pre_trained_sprite_checkpoint_49.pth --n-samples 225 --n-images-per-row 15
+python3 sample.py pretrained_sprite_checkpoint_49.pth --n-samples 225 --n-images-per-row 15
 ~~~
 
 Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each three rows represents a class label (in total 15 rows and 5 classes).
