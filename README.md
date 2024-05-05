@@ -11,11 +11,11 @@ We implement a simple conditional form of *Diffusion Model* described in [Denois
     ~~~
     git clone https://github.com/byrkbrk/diffusion-model.git
     ~~~
-3. In the directory diffusion-model, if you're mac user run:
+3. In the directory `diffusion-model`, for macos, run:
     ~~~
     conda env create -f diffusion-env_macos.yaml
     ~~~
-    If you're linux or windows user run:
+    For linux or windows, run:
     ~~~
     conda env create -f diffusion-env_linux_or_windows.yaml
     ~~~
@@ -29,13 +29,12 @@ We implement a simple conditional form of *Diffusion Model* described in [Denois
 ### MNIST
 To train the model on MNIST dataset from scratch,
 ~~~
-python3 train.py --dataset-name mnist --device your-device
+python3 train.py --dataset-name mnist
 ~~~
-Above, please change `your-device` input, as either `cuda` or `mps`.
 
-In order to sample from a (pre-trained) checkpoint, run:
+In order to sample from our (pretrained) checkpoint:
 ~~~
-python3 sample.py pre_trained_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20 --device your-device
+python3 sample.py pretrained_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20
 ~~~
 
 Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each two rows represents a class label (in total 20 rows and 10 classes).
@@ -50,13 +49,12 @@ Results (jpeg and gif files) will be saved into `generated-images` directory, an
 
 To train the model from scratch on Fashion-MNIST dataset,
 ~~~
-python3 train.py --dataset-name fashion_mnist --device your-device
+python3 train.py --dataset-name fashion_mnist
 ~~~
-Above, please change `your-device` input, as either `cuda` or `mps`.
 
-In order to sample from a (pre-trained) checkpoint, run:
+In order to sample from our (pretrained) checkpoint, run:
 ~~~
-python3 sample.py pre_trained_fashion_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20 --device your-device
+python3 sample.py pretrained_fashion_mnist_checkpoint_49.pth --n-samples 400 --n-images-per-row 20
 ~~~
 
 Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each two rows represents a class label (in total 20 rows and 10 classes).
@@ -67,15 +65,14 @@ Results (jpeg and gif files) will be saved into `generated-images` directory, an
 </div>
 
 ### Sprite
-To train the model from scratch on Sprite dataset,
+To train the model from scratch on Sprite dataset:
 ~~~
-python3 train.py --dataset-name sprite --device your-device
+python3 train.py --dataset-name sprite
 ~~~
-Above, please change `your-device` input, as either `cuda` or `mps`.
 
-In order to sample from a (pre-trained) checkpoint, run:
+In order to sample from our (pretrained) checkpoint, run:
 ~~~
-python3 sample.py pre_trained_sprite_checkpoint_49.pth --n-samples 225 --n-images-per-row 15 --device your-device
+python3 sample.py pre_trained_sprite_checkpoint_49.pth --n-samples 225 --n-images-per-row 15
 ~~~
 
 Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each three rows represents a class label (in total 15 rows and 5 classes).
