@@ -39,11 +39,10 @@ python3 sample.py pretrained_mnist_checkpoint_49.pth --n-samples 400 --n-images-
 
 Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each two rows represents a class label (in total 20 rows and 10 classes).
 
-
-<div style="display: flex;">
-    <img src="files-for-readme/mnist_ddpm_images.jpeg" alt="mnist-jpeg" style="width: 45%; margin-right: 5%;">
-    <img src="files-for-readme/mnist_ani.gif" alt="mnist-ani" style="width: 45%; margin-left: 5%;">
-</div>
+<p align="center">
+  <img src="files-for-readme/mnist_ddpm_images.jpeg" width="45%" />
+  <img src="files-for-readme/mnist_ani.gif" width="45%" />
+</p>
 
 ### Fashion-MNIST
 
@@ -59,10 +58,10 @@ python3 sample.py pretrained_fashion_mnist_checkpoint_49.pth --n-samples 400 --n
 
 Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each two rows represents a class label (in total 20 rows and 10 classes).
 
-<div style="display: flex;">
-    <img src="files-for-readme/fashion_mnist_ddpm_images.jpeg" alt="mnist-jpeg" style="width: 45%; margin-right: 5%;">
-    <img src="files-for-readme/fashion_mnist_ani.gif" alt="mnist-ani" style="width: 45%; margin-left: 5%;">
-</div>
+<p align="center">
+  <img src="files-for-readme/fashion_mnist_ddpm_images.jpeg" width="45%" />
+  <img src="files-for-readme/fashion_mnist_ani.gif" width="45%" />
+</p>
 
 ### Sprite
 To train the model from scratch on Sprite dataset:
@@ -77,7 +76,8 @@ python3 sample.py pretrained_sprite_checkpoint_49.pth --n-samples 225 --n-images
 
 Results (jpeg and gif files) will be saved into `generated-images` directory, and are seen below where each three rows represents a class label (in total 15 rows and 5 classes).
 
-<div style="display: flex;">
-    <img src="files-for-readme/sprite_ddpm_images.jpeg" alt="mnist-jpeg" style="width: 45%; margin-right: 5%;">
-    <img src="files-for-readme/sprite_ani.gif" alt="mnist-ani" style="width: 45%; margin-left: 5%;">
-</div>
+<p align="center">
+  <img src="files-for-readme/sprite_ddpm_images.jpeg" width="45%" />
+  <img src="files-for-readme/sprite_ani.gif" width="45%" />
+</p>
+
