@@ -27,32 +27,34 @@ class DiffusionModel(nn.Module):
         """Trains model for given inputs"""
         self.nn_model.train()
         _, _, ab_t = self.get_ddpm_noise_schedule(timesteps, beta1, beta2, self.device)
+
+        start_epoch = self.get_start_epoch(self.checkpoint_name, self.file_dir)
+
+        if start_epoch >= 50:
+            self.dataset_name = "custom" 
+
         dataset = self.instantiate_dataset(self.dataset_name, 
                             self.get_transforms(self.dataset_name), self.file_dir)
         dataloader = self.initialize_dataloader(dataset, batch_size, self.checkpoint_name, self.file_dir)
+
         optim = self.initialize_optimizer(self.nn_model, lr, self.checkpoint_name, self.file_dir, self.device)
         scheduler = self.initialize_scheduler(optim, self.checkpoint_name, self.file_dir, self.device)
 
-        for epoch in range(self.get_start_epoch(self.checkpoint_name, self.file_dir), 
-                        self.get_start_epoch(self.checkpoint_name, self.file_dir) + n_epoch):
+        for epoch in range(start_epoch, start_epoch + n_epoch):
             ave_loss = 0
 
             for x, c in tqdm(dataloader, mininterval=2, desc=f"Epoch {epoch}"):
                 x = x.to(self.device)
                 c = self.get_masked_context(c).to(self.device)
                 
-                # perturb data
                 noise = torch.randn_like(x)
                 t = torch.randint(1, timesteps + 1, (x.shape[0], )).to(self.device)
                 x_pert = self.perturb_input(x, t, noise, ab_t)
 
-                # predict noise
                 pred_noise = self.nn_model(x_pert, t / timesteps, c=c)
 
-                # obtain loss
                 loss = torch.nn.functional.mse_loss(pred_noise, noise)
                 
-                # update params
                 optim.zero_grad()
                 loss.backward()
                 optim.step()
@@ -169,7 +171,8 @@ class DiffusionModel(nn.Module):
 
                     return image, label
 
-            return CustomDataset(os.path.join(file_dir, "datasets", "processed_combination3"), transform, target_transform)
+            file_dir = os.path.abspath(os.path.join(file_dir, "..", "..", "pipelines"))
+            return CustomDataset(os.path.join(file_dir, "preprocessed_images", "best_combination"), transform, target_transform)
 
     def get_transforms(self, dataset_name):
         """Returns transform and target-transform for given dataset name"""
